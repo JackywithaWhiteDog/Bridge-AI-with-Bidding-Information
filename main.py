@@ -10,18 +10,18 @@ def parse_args() -> argparse.Namespace:
     """ Parses command line arguments. Returns namespace of arguments."""
     parser = argparse.ArgumentParser(description='Run the matches for bridge AIs')
     parser.add_argument(
-        '--declarer_agent',
+        '--agent_a',
         type=str,
         choices=AGENT_DICT.keys(),
         default="Random",
-        help="The name of declarer agent; currently support Random, DDS. (Default: Random)"
+        help="The name of agent A; currently support Random, DDS. (Default: Random)"
     )
     parser.add_argument(
-        '--defender_agent',
+        '--agent_b',
         type=str,
         choices=AGENT_DICT.keys(),
         default="DDS",
-        help="The name of defender agent; currently support Random, DDS. (Default: DDS)"
+        help="The name of agent B; currently support Random, DDS. (Default: DDS)"
     )
     parser.add_argument(
         '--num_games',
@@ -58,8 +58,8 @@ if __name__ == '__main__':
     if args.seed is not None:
         set_seed(args.seed)
     match = Match(
-        declarer_agent_name=args.declarer_agent,
-        defender_agent_name=args.defender_agent,
+        agent_a_name=args.agent_a,
+        agent_b_name=args.agent_b,
         num_games=args.num_games,
         num_cards_in_hand=args.num_cards_in_hand,
         max_threads=args.max_threads
