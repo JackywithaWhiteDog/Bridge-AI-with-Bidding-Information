@@ -59,4 +59,5 @@ class Rank:
 
     @staticmethod
     def idx2str(rank):
+        '''rank = 2~14'''
         return Rank.names[int(rank - 2)]
