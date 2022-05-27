@@ -32,12 +32,12 @@ class Match:
         if self.num_cards_in_hand > 13 or self.num_cards_in_hand <= 0:
             raise ValueError(f"The number of cards in hand ({self.num_cards_in_hand}) is illegal; it should be 1 ~ 13")
 
-        if agent_a_name in ["DDS",]:
+        if agent_a_name in ["DDS","MCTS"]:
             self.agent_a = AGENT_DICT[agent_a_name](max_threads=max_threads)
         else:
             self.agent_a = AGENT_DICT[agent_a_name]()
 
-        if agent_b_name in ["DDS",]:
+        if agent_b_name in ["DDS","MCTS"]:
             self.agent_b = AGENT_DICT[agent_b_name](max_threads=max_threads)
         else:
             self.agent_b = AGENT_DICT[agent_b_name]()

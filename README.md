@@ -27,17 +27,17 @@ python main.py
 Run `python main.py --help` or `python main.py -h` to get the help:
 
 ```text
-usage: main.py [-h] [--declarer_agent {Random,DDS}] [--defender_agent {Random,DDS}] [--num_games NUM_GAMES] [--num_cards_in_hand NUM_CARDS_IN_HAND] [--max_threads MAX_THREADS]
+usage: main.py [-h] [--agent_a {Random,DDS,MCTS}] [--agent_b {Random,DDS,MCTS}] [--num_games NUM_GAMES] [--num_cards_in_hand NUM_CARDS_IN_HAND] [--max_threads MAX_THREADS]
                [--seed SEED]
 
 Run the matches for bridge AIs
 
 optional arguments:
   -h, --help            show this help message and exit
-  --declarer_agent {Random,DDS}
-                        The name of declarer agent; currently support Random, DDS. (Default: Random)
-  --defender_agent {Random,DDS}
-                        The name of defender agent; currently support Random, DDS. (Default: DDS)
+  --agent_a {Random,DDS,MCTS}
+                        The name of agent A; currently support Random, DDS, MCTS. (Default: Random)
+  --agent_b {Random,DDS,MCTS}
+                        The name of agent B; currently support Random, DDS, MCTS. (Default: DDS)
   --num_games NUM_GAMES
                         Number of games to play. (Default: 100)
   --num_cards_in_hand NUM_CARDS_IN_HAND

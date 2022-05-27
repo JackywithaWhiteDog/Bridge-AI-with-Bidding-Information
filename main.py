@@ -14,14 +14,14 @@ def parse_args() -> argparse.Namespace:
         type=str,
         choices=AGENT_DICT.keys(),
         default="Random",
-        help="The name of agent A; currently support Random, DDS. (Default: Random)"
+        help="The name of agent A; currently support Random, DDS, MCTS. (Default: Random)"
     )
     parser.add_argument(
         '--agent_b',
         type=str,
         choices=AGENT_DICT.keys(),
         default="DDS",
-        help="The name of agent B; currently support Random, DDS. (Default: DDS)"
+        help="The name of agent B; currently support Random, DDS, MCTS. (Default: DDS)"
     )
     parser.add_argument(
         '--num_games',
