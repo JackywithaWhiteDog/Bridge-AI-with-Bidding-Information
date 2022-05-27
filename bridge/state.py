@@ -109,8 +109,14 @@ class State:
 
     def larger(self, card_1: Card, card_2: Card) -> bool:
         """Return True if card 1 is larger than card 2"""
-        is_trump_1 = card_1.suit == self.trump
-        is_trump_2 = card_2.suit == self.trump
+        if self.trump == Suit.NT:
+            if len(self.current_cards) == 0:
+                raise ValueError("NT requires the suit of the first card as the trump; there is no card played in this round.")
+            trump = self.current_cards[0].suit
+        else:
+            trump = self.trump
+        is_trump_1 = card_1.suit == trump
+        is_trump_2 = card_2.suit == trump
         if is_trump_1 and (not is_trump_2):
             return True
         if (not is_trump_1) and is_trump_2:
