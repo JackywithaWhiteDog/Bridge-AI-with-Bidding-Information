@@ -13,6 +13,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--defender_agent', type=str, choices=AGENT_DICT.keys(), default="Random")
     parser.add_argument('--num_games', type=int, default=100)
     parser.add_argument('--num_cards_in_hand', type=int, default=13)
+    parser.add_argument('--max_threads', type=int, default=1)
     parser.add_argument('--seed', type=int, default=None)
     return parser.parse_args()
 
@@ -28,7 +29,8 @@ if __name__ == '__main__':
         declarer_agent_name=args.declarer_agent,
         defender_agent_name=args.defender_agent,
         num_games=args.num_games,
-        num_cards_in_hand=args.num_cards_in_hand
+        num_cards_in_hand=args.num_cards_in_hand,
+        max_threads=args.max_threads
     )
     match.run()
     print("Completed")

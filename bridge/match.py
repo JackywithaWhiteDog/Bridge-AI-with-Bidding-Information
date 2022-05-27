@@ -22,15 +22,23 @@ class Match:
     defender_agent_name: InitVar[Literal["Random"]]
     num_games: int = 100
     num_cards_in_hand: int = 13
+    max_threads: InitVar[int] = 0
     declarer_agent: BaseAgent = field(init=False)
     defender_agent: BaseAgent = field(init=False)
 
-    def __post_init__(self, declarer_agent_name, defender_agent_name):
+    def __post_init__(self, declarer_agent_name, defender_agent_name, max_threads):
         if self.num_cards_in_hand > 13 or self.num_cards_in_hand <= 0:
             raise ValueError(f"The number of cards in hand ({self.num_cards_in_hand}) is illegal; it should be 1 ~ 13")
 
-        self.declarer_agent = AGENT_DICT[declarer_agent_name]()
-        self.defender_agent = AGENT_DICT[defender_agent_name]()
+        if declarer_agent_name in ["DDS",]:
+            self.declarer_agent = AGENT_DICT[declarer_agent_name](max_threads=max_threads)
+        else:
+            self.declarer_agent = AGENT_DICT[declarer_agent_name]()
+
+        if defender_agent_name in ["DDS",]:
+            self.defender_agent = AGENT_DICT[defender_agent_name](max_threads=max_threads)
+        else:
+            self.defender_agent = AGENT_DICT[defender_agent_name]()
 
     def run(self):
         win_counts = {'declarer': 0, 'defender': 0}

@@ -48,7 +48,15 @@ class Side:
         return [Side.NORTH, Side.EAST, Side.SOUTH, Side.WEST]
 
     @staticmethod
-    def idx2str(suit, simple=True):
+    def idx2str(suit, simple=False):
         if simple:
             return Side.simple_names[suit]
         return Side.names[suit]
+
+@dataclass
+class Rank:
+    names: ClassVar[List[str]] = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A']
+
+    @staticmethod
+    def idx2str(rank):
+        return Rank.names[int(rank - 2)]
