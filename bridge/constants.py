@@ -40,6 +40,10 @@ class Side:
         return (side + 1) % 4
 
     @staticmethod
+    def get_right(side):
+        return (side + 3) % 4
+
+    @staticmethod
     def get_partner(side):
         return (side + 2) % 4
 
