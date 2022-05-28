@@ -45,6 +45,7 @@ class Match:
     def run(self):
         print(f"Agent A: {self.agent_a} | Agent B: {self.agent_b}")
         win_counts = {'win': 0, 'draw': 0, 'loss': 0}
+        a_scores = []
         progress_bar = tqdm(range(self.num_games))
         for i in progress_bar:
             hands = [
@@ -76,14 +77,13 @@ class Match:
                 num_cards_in_hand=self.num_cards_in_hand
             )
             result_2 = game.run()
+            a_scores.append(result_1.tricks[0] - result_2.tricks[0])
             if result_1.winner == result_2.winner:
                 win_counts['draw'] += 1
-                result_msg = 'Draw'
             elif result_1.winner == 'declarer':
                 win_counts['win'] += 1
-                result_msg = 'Agent A'
             else:
                 win_counts['loss'] += 1
-                result_msg = 'Agent B'
-            progress_bar.set_description(f"[Game {i+1}/{self.num_games}] Total Result (Agent A): {win_counts['win']}-{win_counts['draw']}-{win_counts['loss']} | Result: {result_msg.ljust(6)}")
-        print(f"Agent A => Win-Draw-Loss: {win_counts['win']}-{win_counts['draw']}-{win_counts['loss']}")
+            progress_bar.set_description(f"[Game {i+1}/{self.num_games}] Result: {result_1.tricks[0]}:{result_1.tricks[1]} / {result_2.tricks[0]}:{result_2.tricks[1]} | Total Result (Agent A): {win_counts['win']}-{win_counts['draw']}-{win_counts['loss']} | Score A: {sum(a_scores) / (i+1):.2f}")
+        a_scores = np.array(a_scores)
+        print(f"Agent A => Win-Draw-Loss: {win_counts['win']}-{win_counts['draw']}-{win_counts['loss']} | Score: {a_scores.mean():.2f} (std: {a_scores.std():.2f})")
