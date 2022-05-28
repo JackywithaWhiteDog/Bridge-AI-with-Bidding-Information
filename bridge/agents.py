@@ -6,7 +6,7 @@ import copy
 
 import numpy as np
 
-from bridge.state import State
+from bridge.state import State, Suit
 from bridge.hand import Card, Hand, hands2pbn
 from bridge.dds import dds_score
 from bridge.dds.utils import set_max_threads
@@ -45,33 +45,58 @@ class DDSAgent(BaseAgent):
             raise ValueError("DDS action not legal")
         return result
 
-def uniform_hands(state: State, n: int) -> List[List[Hand]]:
+def get_unknown_sides(state: State) -> List[Literal[0, 1, 2, 3]]:
     if state.current_player in state.declarer_side:
         # Does not know the cards in defenders' hands
-        unknown_side = [
+        return [
             (state.current_player + 1) % 4,
             (state.current_player + 3) % 4
         ]
     else:
         # Does not know the cards in partner's and declarer's hands
-        unknown_side = [
+        return [
             (state.current_player + 2) % 4,
             state.declarer
         ]
-    unknown_cards = state.hands[unknown_side[0]].remain_cards + state.hands[unknown_side[1]].remain_cards
-    first_num_cards = len(state.hands[unknown_side[0]].remain_cards)
+
+def uniform_hands(state: State, n: int) -> List[List[Hand]]:
+    unknown_sides = get_unknown_sides(state)
+    unknown_cards = state.hands[unknown_sides[0]].remain_cards + state.hands[unknown_sides[1]].remain_cards
+    first_num_cards = len(state.hands[unknown_sides[0]].remain_cards)
     result = []
     for i in range(n):
         shuffled_cards = np.random.permutation(unknown_cards)
         hands = copy.deepcopy(state.hands)
-        hands[unknown_side[0]] = Hand(remain_cards=shuffled_cards[:first_num_cards].tolist())
-        hands[unknown_side[1]] = Hand(remain_cards=shuffled_cards[first_num_cards:].tolist())
+        hands[unknown_sides[0]] = Hand(remain_cards=shuffled_cards[:first_num_cards].tolist())
+        hands[unknown_sides[1]] = Hand(remain_cards=shuffled_cards[first_num_cards:].tolist())
+        result.append(hands)
+    return result
+
+def suit_hands(state: State, n: int) -> List[List[Hand]]:
+    unknown_sides = get_unknown_sides(state)
+    unknown_cards_list = [[] for i in range(4)]
+    first_num_cards = [0] * 4
+    for i, side in enumerate(unknown_sides):
+        for card in state.hands[side].remain_cards:
+            unknown_cards_list[card.suit].append(card)
+            if i == 0:
+                first_num_cards[card.suit] += 1
+    result = []
+    for i in range(n):
+        assigned_cards = [[], []]
+        for num, cards in zip(first_num_cards, unknown_cards_list):
+            shuffled_cards = np.random.permutation(cards)
+            assigned_cards[0] += shuffled_cards[:num].tolist()
+            assigned_cards[1] += shuffled_cards[num:].tolist()
+        hands = copy.deepcopy(state.hands)
+        for side, cards in zip(unknown_sides, assigned_cards):
+            hands[side] = Hand(remain_cards=cards)
         result.append(hands)
     return result
 
 @dataclass
 class MCTSAgent(BaseAgent):
-    n: int=30
+    n: int=10
     generate_hands: Callable[[State, int], List[List[Hand]]]=uniform_hands
     reduction: Literal['mean', 'max', 'min']='mean'
     max_threads: int=0
