@@ -109,20 +109,30 @@ class State:
 
     def larger(self, card_1: Card, card_2: Card) -> bool:
         """Return True if card 1 is larger than card 2"""
-        if self.trump == Suit.NT:
-            if len(self.current_cards) == 0:
-                raise ValueError("NT requires the suit of the first card as the trump; there is no card played in this round.")
-            trump = self.current_cards[0].suit
-        else:
-            trump = self.trump
-        is_trump_1 = card_1.suit == trump
-        is_trump_2 = card_2.suit == trump
-        if is_trump_1 and (not is_trump_2):
+        if len(self.current_cards) == 0:
+            raise ValueError("NT requires the suit of the first card as the trump; there is no card played in this round.")
+        if self.trump != Suit.NT:
+            is_trump_1 = card_1.suit == self.trump
+            is_trump_2 = card_2.suit == self.trump
+            if is_trump_1 and (not is_trump_2):
+                return True
+            if (not is_trump_1) and is_trump_2:
+                return False
+            if is_trump_1 and is_trump_2:
+                return card_1.rank > card_2.rank
+
+        # NT or both cards are not trump
+        first_suit = self.current_cards[0].suit
+        follow_first_1 = card_1.suit == first_suit
+        follow_first_2 = card_2.suit == first_suit
+        if follow_first_1 and (not follow_first_2):
             return True
-        if (not is_trump_1) and is_trump_2:
+        if (not follow_first_1) and follow_first_2:
             return False
-        # The suits are the same
-        return card_1.rank > card_2.rank
+        if follow_first_1 and follow_first_2:
+            return card_1.rank > card_2.rank
+        # Both cards are not trump and does not follow the first suit, no need to compare
+        return False
 
     def get_legal_actions(self) -> List[Card]:
         """Return a list of legal actions"""
