@@ -94,13 +94,13 @@ class Goren_bidding:
         hcp = np.sum(hcp_list)
         if hcp < 5:
             return Bid(5, 0) # pass
-        if 5<=hcp<11 and suit_count[2]==3 and suit_count[3]==3 and self.is_legal_bid(last_non_pass_bid,  Bid(0, 1)):
+        if 5<=hcp<=11 and suit_count[2]==3 and suit_count[3]==3 and self.is_legal_bid(last_non_pass_bid,  Bid(0, 1)):
             return Bid(0, 1) #'club_1'
-        if 5<=hcp<11 and suit_count[2]==4 and suit_count[3]==4 and self.is_legal_bid(last_non_pass_bid,  Bid(1, 1)):
+        if 5<=hcp<=11 and suit_count[2]==4 and suit_count[3]==4 and self.is_legal_bid(last_non_pass_bid,  Bid(1, 1)):
             return Bid(1, 1) # 'dimond_1'
-        if hcp>=13 and (suit_count[1]==5 or suit_count[1]==6) and suit_count[1]>suit_count[0] and self.is_legal_bid(last_non_pass_bid,  Bid(2, 1)):
+        if hcp>=12 and (suit_count[1]==5 or suit_count[1]==6) and suit_count[1]>suit_count[0] and self.is_legal_bid(last_non_pass_bid,  Bid(2, 1)):
             return Bid(2, 1) # 'heart_1'
-        if hcp>=13 and (suit_count[0]==5 or suit_count[0]==6) and self.is_legal_bid(last_non_pass_bid,  Bid(3, 1)):
+        if hcp>=12 and (suit_count[0]==5 or suit_count[0]==6) and self.is_legal_bid(last_non_pass_bid,  Bid(3, 1)):
             return Bid(3, 1) #'spade_1'
         if 17>=hcp>=15 and suit_count[0]>1 and suit_count[1]>1 and suit_count[2]>1 and suit_count[3]>1 and self.is_legal_bid(last_non_pass_bid,  Bid(4, 1)):
             return Bid(4, 1) # 'NT_1'
