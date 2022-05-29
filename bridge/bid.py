@@ -16,8 +16,8 @@ from ipdb import set_trace as st
 import copy
 
 
-legel_bid = [f'{i}_{j}' for i in ['spade', 'heart', 'dimond', 'club', 'NT'] for j in range(1,8)]
-legel_bid.append('pass')
+legal_bid = [f'{i}_{j}' for i in ['spade', 'heart', 'dimond', 'club', 'NT'] for j in range(1,8)]
+legal_bid.append('pass')
 
 
 @dataclass
