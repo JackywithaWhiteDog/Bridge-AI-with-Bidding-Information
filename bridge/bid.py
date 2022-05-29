@@ -55,108 +55,117 @@ class Goren_bidding:
             self.hcp[i], self.count_suit[i] = self.calculate_HCP(hand)
 
     def run(self):
-        # st()
+        '''
+        return: a bidding table: (1,28) np.array, 
+        the first element is the the first player to bid
+        the second element is his right playrer's bidding
+        '''
         bidding_table = np.zeros(28, dtype=Bid)
         pass_bid = 0
         turns = 0
         cureent_bid_player = self.declarer_starter
+        last_non_pass_bid = None
+        # st()
         while pass_bid < 3:
             # hand = self.hands[cureent_bid_player]
             # cureent_bid_player_partner = Side.get_partner(cureent_bid_player)
             if bidding_table[turns-2] == 0: # first bid
-                bid_decision = self.make_first_bid(hcp_list=self.hcp[cureent_bid_player], suit_count=self.count_suit[cureent_bid_player])
+                bid_decision = self.make_first_bid(hcp_list=self.hcp[cureent_bid_player], 
+                                                   suit_count=self.count_suit[cureent_bid_player],
+                                                   last_non_pass_bid=last_non_pass_bid)
             else: # response bid
                 partner_bid = bidding_table[turns-2]
                 bid_decision = self.make_response_bid(hcp_list=self.hcp[cureent_bid_player], 
                                                       suit_count=self.count_suit[cureent_bid_player],
-                                                      partner_bid=partner_bid)
+                                                      partner_bid=partner_bid,
+                                                      last_non_pass_bid=last_non_pass_bid)
             bidding_table[turns] = bid_decision
-            if bid_decision.suit == 5:
+            if bid_decision.suit == 5: # pass
                 pass_bid += 1
             else:
                 pass_bid = 0
+                last_non_pass_bid = bid_decision
             turns += 1
             cureent_bid_player = Side.get_right(cureent_bid_player)
-            # st()
         return bidding_table
     
-    def make_first_bid(self, hcp_list, suit_count):
+    def make_first_bid(self, hcp_list, suit_count, last_non_pass_bid):
         '''first bid'''
         hcp = np.sum(hcp_list)
         if hcp < 5:
             return Bid(5, 0) # pass
-        if 5<=hcp<11 and suit_count[2]==3 and suit_count[3]==3:
+        if 5<=hcp<11 and suit_count[2]==3 and suit_count[3]==3 and self.is_legal_bid(last_non_pass_bid,  Bid(0, 1)):
             return Bid(0, 1) #'club_1'
-        if 5<=hcp<11 and suit_count[2]==4 and suit_count[3]==4:
+        if 5<=hcp<11 and suit_count[2]==4 and suit_count[3]==4 and self.is_legal_bid(last_non_pass_bid,  Bid(1, 1)):
             return Bid(1, 1) # 'dimond_1'
-        if hcp>=13 and (suit_count[1]==5 or suit_count[1]==6) and suit_count[1]>suit_count[0]:
+        if hcp>=13 and (suit_count[1]==5 or suit_count[1]==6) and suit_count[1]>suit_count[0] and self.is_legal_bid(last_non_pass_bid,  Bid(2, 1)):
             return Bid(2, 1) # 'heart_1'
-        if hcp>=13 and (suit_count[0]==5 or suit_count[0]==6):
+        if hcp>=13 and (suit_count[0]==5 or suit_count[0]==6) and self.is_legal_bid(last_non_pass_bid,  Bid(3, 1)):
             return Bid(3, 1) #'spade_1'
-        if 17>=hcp>=15 and suit_count[0]>1 and suit_count[1]>1 and suit_count[2]>1 and suit_count[3]>1:
+        if 17>=hcp>=15 and suit_count[0]>1 and suit_count[1]>1 and suit_count[2]>1 and suit_count[3]>1 and self.is_legal_bid(last_non_pass_bid,  Bid(4, 1)):
             return Bid(4, 1) # 'NT_1'
-        if hcp >= 22:
+        if hcp >= 22 and self.is_legal_bid(last_non_pass_bid,  Bid(0, 2)):
             return Bid(0, 2) #'club_2'
         if 5<=hcp<=11:
-            if suit_count[0]>6:
+            if suit_count[0]>6 and self.is_legal_bid(last_non_pass_bid,  Bid(3, 2)):
                 return Bid(3, 2) # 'spade_2'
-            if suit_count[1]>6:
+            if suit_count[1]>6 and self.is_legal_bid(last_non_pass_bid,  Bid(2, 2)):
                 return Bid(2, 2) # 'heart_2'
-            if suit_count[2]>6:
+            if suit_count[2]>6 and self.is_legal_bid(last_non_pass_bid,  Bid(1, 2)):
                 return Bid(1, 2) #'dimond_2'
-        if hcp>=20 and hcp<=21 and suit_count[0]>1 and suit_count[1]>1 and suit_count[2]>1 and suit_count[3]>1:
+        if hcp>=20 and hcp<=21 and suit_count[0]>1 and suit_count[1]>1 and suit_count[2]>1 and suit_count[3]>1 and self.is_legal_bid(last_non_pass_bid,  Bid(4, 2)):
             return Bid(4, 2)  #'NT_2'
         return Bid(5, 0) # pass
 
-    def make_response_bid(self, hcp_list, suit_count, partner_bid):
+    def make_response_bid(self, hcp_list, suit_count, partner_bid, last_non_pass_bid):
         '''response to the partner'''
         hcp = np.sum(hcp_list)
         if partner_bid.suit == 0 and partner_bid.rank == 1: # 1 C
-            if 13<=hcp<=15:
+            if 13<=hcp<=15 and self.is_legal_bid(last_non_pass_bid,  Bid(4, 2)):
                 return Bid(4, 2) # 2 NT
-            if 16<=hcp<=17:
+            if 16<=hcp<=17 and self.is_legal_bid(last_non_pass_bid,  Bid(4, 3)):
                 return Bid(4, 3) #  3NT
         if partner_bid.suit == 1 and partner_bid.rank == 1: # 1 D
-            if 13<=hcp<=15:
+            if 13<=hcp<=15 and self.is_legal_bid(last_non_pass_bid,  Bid(4, 2)):
                 return Bid(4, 2) # 2 NT
-            if 16<=hcp<=17:
+            if 16<=hcp<=17 and self.is_legal_bid(last_non_pass_bid,  Bid(4, 3)):
                 return Bid(4, 3) #  3NT
         if (partner_bid.suit == 2 or partner_bid.suit==3) and partner_bid.rank == 1: # 1 H or 1 S
-            if hcp>=6 and suit_count[0]>=4 and suit_count[1]==0:
+            if hcp>=6 and suit_count[0]>=4 and suit_count[1]==0 and self.is_legal_bid(last_non_pass_bid,  Bid(3, 1)):
                 return Bid(3, 1) # 1 S
-            if 9>=hcp>=6 and suit_count[0]!=4 and suit_count[1]!=3:
+            if 9>=hcp>=6 and suit_count[0]!=4 and suit_count[1]!=3 and self.is_legal_bid(last_non_pass_bid,  Bid(4, 1)):
                 return Bid(4, 1) # 1 NT
-            if hcp>=10 and suit_count[2]>=4:
+            if hcp>=10 and suit_count[2]>=4 and self.is_legal_bid(last_non_pass_bid,  Bid(1, 1)):
                 return Bid(1, 1)
-            if hcp>=10 and suit_count[3]>=4:
+            if hcp>=10 and suit_count[3]>=4 and self.is_legal_bid(last_non_pass_bid,  Bid(0, 1)):
                 return Bid(0, 1)
-            if hcp>=13:
+            if hcp>=13 and self.is_legal_bid(last_non_pass_bid,  Bid(4, 2)):
                 return Bid(4, 2)  #'NT_2'
-            if 10<=hcp<=12 and suit_count[1]>=3:
+            if 10<=hcp<=12 and suit_count[1]>=3 and self.is_legal_bid(last_non_pass_bid,  Bid(2, 3)):
                 return Bid(2, 3) # 'heart_3'
-            if 15<=hcp<=17 and suit_count[1]>=3 and suit_count[0]>1 and suit_count[1]>1 and suit_count[2]>1 and suit_count[3]>1:
+            if 15<=hcp<=17 and suit_count[1]>=3 and suit_count[0]>1 and suit_count[1]>1 and suit_count[2]>1 and suit_count[3]>1 and self.is_legal_bid(last_non_pass_bid,  Bid(4, 3)):
                 return Bid(4, 3) # 'NT_3'
-            if hcp<10 and suit_count[1]>=5:
+            if hcp<10 and suit_count[1]>=5 and self.is_legal_bid(last_non_pass_bid,  Bid(2, 4)):
                 return Bid(2, 4) # 'heart_4'
         if partner_bid.suit == 4 and partner_bid.rank == 1: # 1NT
-            if hcp>=8:
+            if hcp>=8 and self.is_legal_bid(last_non_pass_bid,  Bid(0, 2)):
                 return Bid(0, 2) #'club_2'
         if partner_bid.suit == 0 and partner_bid.rank == 2: # 2 C
-            if hcp>=8 and suit_count[0]>=5: # spade>=5
+            if hcp>=8 and suit_count[0]>=5 and self.is_legal_bid(last_non_pass_bid,  Bid(3, 2)) : # spade>=5
                 return Bid(3, 2) # 'spade_2' 
-            if hcp>=8 and suit_count[1]>=5: # heart>=5
+            if hcp>=8 and suit_count[1]>=5 and self.is_legal_bid(last_non_pass_bid,  Bid(2, 2)): # heart>=5
                 return Bid(2, 2) # 'heart_2' 
-            if hcp>=8 and suit_count[2]>=5: # dimond>=5
+            if hcp>=8 and suit_count[2]>=5 and self.is_legal_bid(last_non_pass_bid,  Bid(1, 2)): # dimond>=5
                 return Bid(1, 2) # 'dimond_2' 
-            if hcp>=8 and suit_count[3]>=5: # club>=5
+            if hcp>=8 and suit_count[3]>=5 and self.is_legal_bid(last_non_pass_bid,  Bid(0, 2)): # club>=5
                 return Bid(0, 2) # 'club_2' 
-            if hcp==8 and suit_count[1]>=3 and suit_count[0]>1 and suit_count[1]>1 and suit_count[2]>1 and suit_count[3]>1:
+            if hcp==8 and suit_count[1]>=3 and suit_count[0]>1 and suit_count[1]>1 and suit_count[2]>1 and suit_count[3]>1 and self.is_legal_bid(last_non_pass_bid,  Bid(4, 2)):
                 return Bid(4, 2) # 'NT_2' 
-        if (partner_bid.suit == 1 or partner_bid.suit == 2 or partner_bid.suit == 3) and partner_bid.rank == 2: # Response to 2D,2H,2S contract
+        if (partner_bid.suit == 1 or partner_bid.suit == 2 or partner_bid.suit == 3) and partner_bid.rank == 2 and self.is_legal_bid(last_non_pass_bid,  Bid(4, 2)): # Response to 2D,2H,2S contract
             return Bid(4, 2) # 'NT_2'
-        if partner_bid.suit == 4 and partner_bid.rank == 2: # Response to 2NT contract
+        if partner_bid.suit == 4 and partner_bid.rank == 2 and self.is_legal_bid(last_non_pass_bid,  Bid(0, 3)): # Response to 2NT contract
             return Bid(0, 3) # 'club_3'
-        if partner_bid.suit == 4 and partner_bid.rank == 3: # Response to 3NT contract
+        if partner_bid.suit == 4 and partner_bid.rank == 3 and self.is_legal_bid(last_non_pass_bid,  Bid(0, 4)): # Response to 3NT contract
             return Bid(0, 4) # 'club_4'
         return Bid(5, 0) # pass
 
@@ -179,6 +188,21 @@ class Goren_bidding:
             if counts >= 5:
                 hcp_suit[ii] += counts-4
         return hcp_suit, count_suit
+    
+    def is_legal_bid(self, last_bid, next_bid):
+        if last_bid is None: # no last bid
+            return True
+        if next_bid.suit == 5: # next bid is pass
+            return True
+        if next_bid.rank == last_bid.rank:
+            if next_bid.suit > last_bid.suit:
+                return True
+            else:
+                return False
+        elif next_bid.rank > last_bid.rank:
+            return True
+        else:
+            return False
 
 
 
@@ -208,3 +232,4 @@ if __name__ == '__main__':
         num_cards_in_hand=13
     )
     result = game.run()
+    st()
