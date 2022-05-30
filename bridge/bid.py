@@ -15,6 +15,7 @@ import numpy as np
 from ipdb import set_trace as st
 import copy
 
+# TODO: all pass condition, training data generator
 
 legal_bid = [f'{i}_{j}' for i in ['spade', 'heart', 'dimond', 'club', 'NT'] for j in range(1,8)]
 legal_bid.append('pass')
@@ -65,8 +66,9 @@ class Goren_bidding:
         turns = 0
         cureent_bid_player = self.declarer_starter
         last_non_pass_bid = None
+        nobody_bid = 0
         # st()
-        while pass_bid < 3:
+        while True:
             # hand = self.hands[cureent_bid_player]
             # cureent_bid_player_partner = Side.get_partner(cureent_bid_player)
             if bidding_table[turns-2] == 0: # first bid
@@ -85,6 +87,9 @@ class Goren_bidding:
             else:
                 pass_bid = 0
                 last_non_pass_bid = bid_decision
+                nobody_bid = 1
+            if pass_bid+nobody_bid == 4:
+                break
             turns += 1
             cureent_bid_player = Side.get_right(cureent_bid_player)
         return bidding_table
@@ -101,7 +106,7 @@ class Goren_bidding:
         if hcp>=12 and (suit_count[1]==5 or suit_count[1]==6) and suit_count[1]>suit_count[0] and self.is_legal_bid(last_non_pass_bid,  Bid(2, 1)):
             return Bid(2, 1) # 'heart_1'
         if hcp>=12 and (suit_count[0]==5 or suit_count[0]==6) and self.is_legal_bid(last_non_pass_bid,  Bid(3, 1)):
-            return Bid(3, 1) #'spade_1'
+            return Bid(3, 1) # 'ppp'
         if 17>=hcp>=15 and suit_count[0]>1 and suit_count[1]>1 and suit_count[2]>1 and suit_count[3]>1 and self.is_legal_bid(last_non_pass_bid,  Bid(4, 1)):
             return Bid(4, 1) # 'NT_1'
         if hcp >= 22 and self.is_legal_bid(last_non_pass_bid,  Bid(0, 2)):
@@ -135,10 +140,10 @@ class Goren_bidding:
                 return Bid(3, 1) # 1 S
             if 9>=hcp>=6 and suit_count[0]!=4 and suit_count[1]!=3 and self.is_legal_bid(last_non_pass_bid,  Bid(4, 1)):
                 return Bid(4, 1) # 1 NT
-            if hcp>=10 and suit_count[2]>=4 and self.is_legal_bid(last_non_pass_bid,  Bid(1, 1)):
-                return Bid(1, 1)
-            if hcp>=10 and suit_count[3]>=4 and self.is_legal_bid(last_non_pass_bid,  Bid(0, 1)):
-                return Bid(0, 1)
+            if hcp>=10 and suit_count[2]>=4 and self.is_legal_bid(last_non_pass_bid,  Bid(1, 2)):
+                return Bid(1, 2) # 2 D
+            if hcp>=10 and suit_count[3]>=4 and self.is_legal_bid(last_non_pass_bid,  Bid(0, 2)):
+                return Bid(0, 2) # 2 C
             if hcp>=13 and self.is_legal_bid(last_non_pass_bid,  Bid(4, 2)):
                 return Bid(4, 2)  #'NT_2'
             if 10<=hcp<=12 and suit_count[1]>=3 and self.is_legal_bid(last_non_pass_bid,  Bid(2, 3)):
@@ -218,7 +223,7 @@ full_cards: List[Card] = [
 
 
 if __name__ == '__main__':
-    set_seed(777)
+    set_seed(666)
     # assert len(full_cards) == 52, 'There are not 52 cards'
     hands = [
         Hand(remain_cards=cards.tolist())

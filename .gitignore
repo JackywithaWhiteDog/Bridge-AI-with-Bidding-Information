@@ -1,3 +1,4 @@
 # Python
 .python-version
 __pycache__
+*.txt
