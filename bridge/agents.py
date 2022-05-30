@@ -46,8 +46,12 @@ class DDSAgent(BaseAgent):
         return result
 
 def get_unknown_sides(state: State) -> List[Literal[0, 1, 2, 3]]:
+    if sum(state.tricks) == 0 and len(state.current_cards) == 0:
+        # The first player of the first round doesn't know all the others' hands
+        return [i for i in range(4) if i != state.current_player]
     if state.current_player in state.declarer_side:
         # Does not know the cards in defenders' hands
+        # Since the declarer will play dummy's hand, the agent for dummy also know te declarer's hand
         return [
             (state.current_player + 1) % 4,
             (state.current_player + 3) % 4
@@ -61,33 +65,41 @@ def get_unknown_sides(state: State) -> List[Literal[0, 1, 2, 3]]:
 
 def uniform_hands(state: State, n: int) -> List[List[Hand]]:
     unknown_sides = get_unknown_sides(state)
-    unknown_cards = state.hands[unknown_sides[0]].remain_cards + state.hands[unknown_sides[1]].remain_cards
-    first_num_cards = len(state.hands[unknown_sides[0]].remain_cards)
+    unknown_cards = []
+    for side in unknown_sides:
+        unknown_cards += state.hands[side].remain_cards
+    num_cards = [
+        len(state.hands[side].remain_cards)
+        for side in unknown_sides
+    ]
     result = []
     for i in range(n):
         shuffled_cards = np.random.permutation(unknown_cards)
         hands = copy.deepcopy(state.hands)
-        hands[unknown_sides[0]] = Hand(remain_cards=shuffled_cards[:first_num_cards].tolist())
-        hands[unknown_sides[1]] = Hand(remain_cards=shuffled_cards[first_num_cards:].tolist())
+        offset = 0
+        for side, num in zip(unknown_sides, num_cards):
+            hands[side] = Hand(remain_cards=shuffled_cards[offset:offset+num].tolist())
+            offset += num
         result.append(hands)
     return result
 
 def suit_hands(state: State, n: int) -> List[List[Hand]]:
     unknown_sides = get_unknown_sides(state)
     unknown_cards_list = [[] for i in range(4)]
-    first_num_cards = [0] * 4
-    for i, side in enumerate(unknown_sides):
+    num_cards_list = [[0] * 4 for i in range(4)]
+    for side in unknown_sides:
         for card in state.hands[side].remain_cards:
             unknown_cards_list[card.suit].append(card)
-            if i == 0:
-                first_num_cards[card.suit] += 1
+            num_cards_list[side][card.suit] += 1
     result = []
     for i in range(n):
-        assigned_cards = [[], []]
-        for num, cards in zip(first_num_cards, unknown_cards_list):
+        assigned_cards = [[] for i in len(unknown_sides)]
+        for num_cards, cards in zip(num_cards_list, unknown_cards_list):
             shuffled_cards = np.random.permutation(cards)
-            assigned_cards[0] += shuffled_cards[:num].tolist()
-            assigned_cards[1] += shuffled_cards[num:].tolist()
+            offset = 0
+            for i, num in enumerate(num_cards):
+                assigned_cards[i] += shuffled_cards[offset:offset+num].tolist
+                offset += num
         hands = copy.deepcopy(state.hands)
         for side, cards in zip(unknown_sides, assigned_cards):
             hands[side] = Hand(remain_cards=cards)
