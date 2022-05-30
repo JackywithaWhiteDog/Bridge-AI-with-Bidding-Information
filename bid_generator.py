@@ -31,7 +31,7 @@ full_cards: List[Card] = [
 
 if __name__ == '__main__':
     '''
-    # Bidding oeder: 0 3 2 1  (i.e.,NESW) 
+    # Bidding oeder: 0 1 2 3  (i.e.,NWSE)
     # playing order: 0 1 2 3  (i.e.,NWSE)
     output and save: str based txt file. The format is:
         N's hand $ E's hand $ S's hand $ W's hand || declarer_starter: bidding sequence
@@ -49,9 +49,9 @@ if __name__ == '__main__':
         set_seed(args.seed)
     side_dic = list('NESW')
     ff = open ( "data.txt" , "w" )
-
-    for j in range(args.data_size):
-        print(f'Generating data: {j+1}/{args.data_size}', end = ' \r')
+    cnt = 0
+    while cnt < args.data_size:
+        print(f'Generating data: {cnt+1}/{args.data_size}', end = ' \r')
         hands = [
             Hand(remain_cards=cards.tolist())
             for cards in np.split(np.random.permutation(full_cards)[:4*13], 4)
@@ -64,10 +64,14 @@ if __name__ == '__main__':
             num_cards_in_hand=13
         )
         result = game.run()
+        if [i.to_str() for i in result[:4] if i != 0].count('pass') == 4:
+            continue
+        result_str = side_dic[declarer_starter] + ':' + '.'.join([i.to_str() for i in result if i != 0])
+        # st()
         hand_cards = [i.to_pbn() for i in hands]
         hand_cards_str = '$'.join(hand_cards)
-        result_str = side_dic[declarer_starter] + ':' + '.'.join([i.to_str() for i in result if i != 0])
         output_str = hand_cards_str + ' || ' + result_str
         ff.write(output_str+'\n')
+        cnt += 1
         # st()
     ff.close()

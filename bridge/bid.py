@@ -42,7 +42,7 @@ class Goren_bidding:
     """
     bidding system (Goren), used before playing phase
     Side: [0,1,2,3] <- [N,E,S,W] 
-    bidding order: 0->3->2->1->0...
+    bidding order: 0->1->2->3->0... the same as playing!!
     """
     hands: List[Hand]
     declarer_starter: Literal[0, 1, 2, 3] = Side.NORTH
@@ -91,7 +91,7 @@ class Goren_bidding:
             if pass_bid+nobody_bid == 4:
                 break
             turns += 1
-            cureent_bid_player = Side.get_right(cureent_bid_player)
+            cureent_bid_player = Side.get_left(cureent_bid_player)
         return bidding_table
     
     def make_first_bid(self, hcp_list, suit_count, last_non_pass_bid):
