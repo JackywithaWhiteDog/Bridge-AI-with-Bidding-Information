@@ -23,6 +23,7 @@ class Game:
     declarer_goal: InitVar[Literal[7, 8, 9, 10, 11, 12, 13]] = 7
     end_when_goal_achieved: InitVar[bool] = False
     num_cards_in_hand: InitVar[int] = 13
+    declarer_starter: Literal[0, 1, 2, 3] = Side.NORTH
 
     state: State = field(init=False)
 
@@ -46,7 +47,8 @@ class Game:
             declarer_goal=declarer_goal,
             end_when_goal_achieved=end_when_goal_achieved,
             num_cards_in_hand=num_cards_in_hand,
-            bidding_info=self.bidding_info
+            bidding_info=self.bidding_info,
+            declarer_starter=self.declarer_starter
         )
 
     def run(self) -> Result:

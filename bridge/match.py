@@ -95,7 +95,8 @@ class Match:
                 declarer=declarer,
                 declarer_goal=declarer_goal,
                 end_when_goal_achieved=False,
-                num_cards_in_hand=self.num_cards_in_hand
+                num_cards_in_hand=self.num_cards_in_hand,
+                declarer_starter=declarer_starter
             )
             result_1 = game.run()
             game = Game(
@@ -107,7 +108,8 @@ class Match:
                 declarer=declarer,
                 declarer_goal=declarer_goal,
                 end_when_goal_achieved=False,
-                num_cards_in_hand=self.num_cards_in_hand
+                num_cards_in_hand=self.num_cards_in_hand,
+                declarer_starter=declarer_starter
             )
             result_2 = game.run()
             a_scores.append(result_1.tricks[0] - result_2.tricks[0])
