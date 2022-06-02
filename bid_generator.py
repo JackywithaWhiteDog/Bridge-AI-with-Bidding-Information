@@ -48,7 +48,7 @@ if __name__ == '__main__':
     if args.seed is not None:
         set_seed(args.seed)
     side_dic = list('NESW')
-    ff = open ( "data.txt" , "w" )
+    ff = open( "data.txt" , "w" )
     cnt = 0
     while cnt < args.data_size:
         print(f'Generating data: {cnt+1}/{args.data_size}', end = ' \r')

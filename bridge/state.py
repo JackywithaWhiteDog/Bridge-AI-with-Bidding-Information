@@ -3,6 +3,7 @@ from typing import List, Literal
 
 from bridge.constants import Suit, Side
 from bridge.hand import Hand, Card
+from bridge.bid import Bid
 
 """
 boardsPBN
@@ -33,6 +34,7 @@ class State:
     trump: int
     first: int
     current_player: int
+    bidding_info: List[Bid]
     declarer: Literal[0, 1, 2, 3] = Side.NORTH
     declarer_goal: Literal[7, 8, 9, 10, 11, 12, 13] = 7
     end_when_goal_achieved: bool = False
@@ -40,7 +42,7 @@ class State:
     declarer_side: List[int] = field(init=False)
     defender_goal: int = field(init=False)
     tricks: List[int] = field(init=False, default_factory=lambda:[0, 0])
-    current_cards: List[Card] = field(init=False, default_factory=list)
+    current_cards: List[Card] = field(init=False, default_factory=list) 
 
     def __post_init__(self):
         if self.num_cards_in_hand > 13 or self.num_cards_in_hand <= 0:

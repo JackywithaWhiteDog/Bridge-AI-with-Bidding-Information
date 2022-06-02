@@ -10,6 +10,9 @@ from bridge.constants import Suit, Side
 from bridge.hand import Card, Hand
 from bridge.game import Game
 from bridge.agents import BaseAgent, AGENT_DICT
+from bridge.bid import Goren_bidding, Bid
+
+from ipdb import set_trace as st
 
 DECK: List[Card] = [
     Card(suit=suit, rank=rank)
@@ -41,27 +44,56 @@ class Match:
             self.agent_b = AGENT_DICT[agent_b_name](max_threads=max_threads)
         else:
             self.agent_b = AGENT_DICT[agent_b_name]()
+    
+    def trump_and_declarer(self, bidding_info, declarer_starter):
+        '''
+        bidding suit: ['♣', '♦', '♥', '♠', 'NT', 'pass']
+        playing suit: ['♠', '♥', '♦', '♣', "NT"]
+        return:
+            the suit of trump
+            the goal that declarer needs to achieve
+            declarer's side
+        '''
+        mapping_dic = {0:3, 1:2, 2:1, 3:0, 4:4}
+        result_info = [i for i in bidding_info if i != 0]
+        last_bid = result_info[-4]
+        declarer = (declarer_starter + len(result_info)) % 4
+        return mapping_dic[last_bid.suit], last_bid.rank+6, declarer
+
 
     def run(self):
         print(f"Agent A: {self.agent_a} | Agent B: {self.agent_b}")
         win_counts = {'win': 0, 'draw': 0, 'loss': 0}
         a_scores = []
         progress_bar = tqdm(range(self.num_games))
-        for i in progress_bar:
+        cnt = 1
+        while cnt <= self.num_games:
             hands = [
                 Hand(remain_cards=cards.tolist())
                 for cards in np.split(np.random.permutation(DECK)[:4*self.num_cards_in_hand], 4)
             ]
-            trump = random.choice(Suit.to_list(nt=True))
-            declarer = random.choice(Side.to_list())
+            # trump = random.choice(Suit.to_list(nt=True))
+            # declarer = random.choice(Side.to_list())
+            # st()
+            declarer_starter = random.choice(Side.to_list())
+            bidding_game = Goren_bidding(            
+                hands=copy.deepcopy(hands),
+                declarer_starter=declarer_starter,
+                num_cards_in_hand=13)
+            bidding_result = bidding_game.run()
+            if [i.to_str() for i in bidding_result[:4] if i != 0].count('pass') == 4:
+                continue
+            trump, declarer_goal, declarer = self.trump_and_declarer(bidding_result, declarer_starter)
             # progress_bar.set_description(f"[Game {i+1}/{self.num_games}] Deal: 1{Suit.idx2str(trump, simple=True)} | Declarer: {Side.idx2str(declarer, simple=False)}")
+            
             game = Game(
                 declarer_agent=self.agent_a,
                 defender_agent=self.agent_b,
                 hands=copy.deepcopy(hands),
+                bidding_info=bidding_result,
                 trump=trump,
                 declarer=declarer,
-                declarer_goal=7,
+                declarer_goal=declarer_goal,
                 end_when_goal_achieved=False,
                 num_cards_in_hand=self.num_cards_in_hand
             )
@@ -70,9 +102,10 @@ class Match:
                 declarer_agent=self.agent_b,
                 defender_agent=self.agent_a,
                 hands=copy.deepcopy(hands),
+                bidding_info=bidding_result,
                 trump=trump,
                 declarer=declarer,
-                declarer_goal=7,
+                declarer_goal=declarer_goal,
                 end_when_goal_achieved=False,
                 num_cards_in_hand=self.num_cards_in_hand
             )
@@ -84,6 +117,8 @@ class Match:
                 win_counts['win'] += 1
             else:
                 win_counts['loss'] += 1
-            progress_bar.set_description(f"[Game {i+1}/{self.num_games}] Result: {result_1.tricks[0]}:{result_1.tricks[1]} / {result_2.tricks[0]}:{result_2.tricks[1]} | Total Result (Agent A): {win_counts['win']}-{win_counts['draw']}-{win_counts['loss']} | Score A: {sum(a_scores) / (i+1):.2f}")
+            progress_bar.update(1)
+            progress_bar.set_description(f"[Game {cnt}/{self.num_games}] Result: {result_1.tricks[0]}:{result_1.tricks[1]} / {result_2.tricks[0]}:{result_2.tricks[1]} | Total Result (Agent A): {win_counts['win']}-{win_counts['draw']}-{win_counts['loss']} | Score A: {sum(a_scores) / (cnt):.2f}")
+            cnt += 1
         a_scores = np.array(a_scores)
         print(f"Agent A => Win-Draw-Loss: {win_counts['win']}-{win_counts['draw']}-{win_counts['loss']} | Score: {a_scores.mean():.2f} (std: {a_scores.std():.2f})")

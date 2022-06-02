@@ -3,12 +3,12 @@ from locale import currency
 from typing import Literal, List
 
 import sys
-sys.path.insert(0, "/home/kung/code/Bridge-AI-with-Bidding-Information/")
+# sys.path.insert(0, "/home/kung/code/Bridge-AI-with-Bidding-Information/")
 # print(sys.path)
 
 from bridge.constants import Suit, Side
 from bridge.hand import Hand, Card
-from bridge.state import State, Result
+# from bridge.state import State, Result
 
 import random
 import numpy as np

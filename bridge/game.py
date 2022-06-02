@@ -5,6 +5,10 @@ from bridge.constants import Suit, Side
 from bridge.hand import Hand
 from bridge.state import State, Result
 from bridge.agents import BaseAgent
+from bridge.bid import Bid
+
+from ipdb import set_trace as st
+
 
 @dataclass
 class Game:
@@ -13,6 +17,7 @@ class Game:
     defender_agent: BaseAgent
 
     hands: InitVar[List[Hand]]
+    bidding_info: List[Bid]
     trump: InitVar[Literal[0, 1, 2, 3, 4]] = Suit.NT
     declarer: InitVar[Literal[0, 1, 2, 3]] = Side.NORTH
     declarer_goal: InitVar[Literal[7, 8, 9, 10, 11, 12, 13]] = 7
@@ -28,7 +33,7 @@ class Game:
         declarer,
         declarer_goal,
         end_when_goal_achieved,
-        num_cards_in_hand
+        num_cards_in_hand,
     ):
 
         current_player = Side.get_left(declarer)
@@ -40,7 +45,8 @@ class Game:
             declarer=declarer,
             declarer_goal=declarer_goal,
             end_when_goal_achieved=end_when_goal_achieved,
-            num_cards_in_hand=num_cards_in_hand
+            num_cards_in_hand=num_cards_in_hand,
+            bidding_info=self.bidding_info
         )
 
     def run(self) -> Result:
