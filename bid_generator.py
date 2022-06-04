@@ -3,6 +3,7 @@ import random
 import copy
 import numpy as np
 from typing import Literal, List
+from pathlib import Path
 
 from bridge.bid import Bid, Goren_bidding
 from bridge.constants import Suit, Side
@@ -15,6 +16,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Generate biding results with corresponding hands')
     parser.add_argument('--seed', type=int, default=777,)
     parser.add_argument('--data_size', type=int, default=10000,)
+    parser.add_argument('--output_file', type=Path, default="data.txt",)
     return parser.parse_args()
 
 def set_seed(seed):
@@ -48,7 +50,8 @@ if __name__ == '__main__':
     if args.seed is not None:
         set_seed(args.seed)
     side_dic = list('NESW')
-    ff = open( "data.txt" , "w" )
+    args.output_file.parent.mkdir(parents=True, exist_ok=True)
+    ff = open( args.output_file , "w" )
     cnt = 0
     while cnt < args.data_size:
         print(f'Generating data: {cnt+1}/{args.data_size}', end = ' \r')
