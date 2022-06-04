@@ -35,8 +35,8 @@ class State:
     first: int
     current_player: int
     bidding_info: List[Bid]
-    declarer: Literal[0, 1, 2, 3] = Side.NORTH
-    declarer_starter: Literal[0, 1, 2, 3] = Side.NORTH
+    declarer: Literal[0, 1, 2, 3] = Side.NORTH # who declarers
+    declarer_starter: Literal[0, 1, 2, 3] = Side.NORTH # who starts the bidding
     declarer_goal: Literal[7, 8, 9, 10, 11, 12, 13] = 7
     end_when_goal_achieved: bool = False
     num_cards_in_hand: int = 13
