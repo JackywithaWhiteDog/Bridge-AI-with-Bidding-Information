@@ -1,7 +1,9 @@
 import torch
 from torch import nn, Tensor
+from torch.nn.functional import softmax
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import pytorch_lightning as pl
+import numpy as np
 
 class HandsClassifier(pl.LightningModule):
     def __init__(
@@ -42,8 +44,9 @@ class HandsClassifier(pl.LightningModule):
             # nn.ELU(),
             nn.Dropout(dropout),
             nn.Linear(fc_hidden_size, 4*52),
-            nn.Sigmoid()
         )
+
+        self.sigmoid = nn.Sigmoid()
 
         self.lr = lr
         self.weight_decay = weight_decay
@@ -52,7 +55,7 @@ class HandsClassifier(pl.LightningModule):
         self.loss = nn.BCELoss()
         self.save_hyperparameters()
 
-    def forward(self, masked_hand, bidding, length) -> Tensor:
+    def forward(self, masked_hand, bidding, length, return_raw_outputs=False) -> Tensor:
         # hand_features = self.hand_fc(masked_hand)
         hand_features = masked_hand
 
@@ -87,7 +90,11 @@ class HandsClassifier(pl.LightningModule):
         # concat_features = last_features
         # concat_features = hand_features
 
-        return self.fc(concat_features)
+        raw_outputs = self.fc(concat_features)
+
+        if return_raw_outputs:
+            return raw_outputs
+        return self.sigmoid(raw_outputs)
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
@@ -102,7 +109,7 @@ class HandsClassifier(pl.LightningModule):
             total_cnts = result.sum(dim=1)
             cards_selected = torch.stack(result.split(52, dim=1)).sum(dim=0) > 0
             # Reduce the probability of selected cards and players with full hands
-            output = output - cards_selected.float().repeat(1, 4) - (hand_cnts.T == 13).float().repeat_interleave(52, dim=1)
+            output = output - 2 * (output.max() - output.min()) * (cards_selected.float().repeat(1, 4) + (hand_cnts.T == 13).float().repeat_interleave(52, dim=1))
 
         prob_ranks = output.argsort(dim=1, descending=True)
         side_indices = torch.div(prob_ranks, 52, rounding_mode='floor')
@@ -127,6 +134,46 @@ class HandsClassifier(pl.LightningModule):
                 if total_cnt == 52:
                     break
         return result
+
+    def random_generate(self, output, hints=None, n=10, t=1.0):
+        if hints is None:
+            result = torch.zeros((output.size(0), n, output.size(1)))
+        else:
+            result = hints.clone()
+            result[result < 0] = 0
+            hand_cnts = torch.stack(result.split(52, dim=1)).sum(dim=2)
+            total_cnts = result.sum(dim=1)
+            cards_selected = torch.stack(result.split(52, dim=1)).sum(dim=0) > 0
+            # Reduce the probability of selected cards and players with full hands
+            output = output - 2 * (output.max() - output.min()) * (cards_selected.float().repeat(1, 4) + (hand_cnts.T == 13).float().repeat_interleave(52, dim=1))
+            result = result.unsqueeze(1).repeat(1, n, 1)
+
+        for i, o in enumerate(output):
+            for j in range(n):
+                hand_cnt = hand_cnts[:, i].clone()
+                total_cnt = total_cnts[i].clone()
+                card_selected = cards_selected[i, :].clone()
+                current_o = o.clone()
+                while total_cnt < 52:
+                    probs = softmax(current_o / t, dim=0).numpy()
+                    probs /= probs.sum()
+                    indices = torch.tensor(np.random.choice(len(probs), size=int(52 - total_cnt.item()), replace=False, p=probs))
+                    side_indices = torch.div(indices, 52, rounding_mode='floor')
+                    card_indices = indices % 52
+                    for idx, side, card in zip(indices, side_indices, card_indices):
+                        if (hand_cnt[side] == 13) or card_selected[card]:
+                            continue
+                        result[i, j, idx] = 1
+                        hand_cnt[side] += 1
+                        total_cnt += 1
+                        card_selected[card] = True
+                        # Reduce the probability of selected cards
+                        current_o[torch.arange(4) * 52 + card] -= (current_o.max() - current_o.min())
+                        if hand_cnt[side] == 13:
+                            # Reduce the probability of players with full hands
+                            current_o[side*52:(side+1)*52] -= (current_o.max() - current_o.min())
+        return result
+
 
     @torch.no_grad()
     def get_accuracy(self, prediction, target, hints=None):
