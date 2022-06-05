@@ -1,3 +1,9 @@
+--find-links https://download.pytorch.org/whl/cu113/torch_stable.html
+
 numpy
 tqdm
 ipdb
+torch==1.10.2+cu113
+pytorch-lightning
+# Related to pytorch issue: https://github.com/PyTorchLightning/pytorch-lightning/issues/13159
+protobuf<=3.20.1

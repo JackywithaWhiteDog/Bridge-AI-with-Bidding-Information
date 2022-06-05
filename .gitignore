@@ -2,3 +2,10 @@
 .python-version
 __pycache__
 *.txt
+
+# Dataset
+data/
+
+# Models
+lightning_logs/
+ckpt/

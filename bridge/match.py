@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field, InitVar
-from typing import List, Literal
+from typing import List, Dict, Any
 import random
 import copy
 
@@ -9,7 +9,7 @@ from tqdm import tqdm
 from bridge.constants import Suit, Side
 from bridge.hand import Card, Hand
 from bridge.game import Game
-from bridge.agents import BaseAgent, AGENT_DICT
+from bridge.agents import BaseAgent, get_agent
 from bridge.bid import Goren_bidding, Bid
 
 from ipdb import set_trace as st
@@ -23,27 +23,19 @@ DECK: List[Card] = [
 @dataclass
 class Match:
     """Class for playing match"""
-    agent_a_name: InitVar[Literal["Random"]]
-    agent_b_name: InitVar[Literal["Random"]]
+    agent_a_kwargs: InitVar[Dict[str, Any]]
+    agent_b_kwargs: InitVar[Dict[str, Any]]
     num_games: int = 100
     num_cards_in_hand: int = 13
-    max_threads: InitVar[int] = 0
     agent_a: BaseAgent = field(init=False)
     agent_b: BaseAgent = field(init=False)
 
-    def __post_init__(self, agent_a_name, agent_b_name, max_threads):
+    def __post_init__(self, agent_a_kwargs, agent_b_kwargs):
         if self.num_cards_in_hand > 13 or self.num_cards_in_hand <= 0:
             raise ValueError(f"The number of cards in hand ({self.num_cards_in_hand}) is illegal; it should be 1 ~ 13")
 
-        if agent_a_name in ["DDS","MCTS"]:
-            self.agent_a = AGENT_DICT[agent_a_name](max_threads=max_threads)
-        else:
-            self.agent_a = AGENT_DICT[agent_a_name]()
-
-        if agent_b_name in ["DDS","MCTS"]:
-            self.agent_b = AGENT_DICT[agent_b_name](max_threads=max_threads)
-        else:
-            self.agent_b = AGENT_DICT[agent_b_name]()
+        self.agent_a = get_agent(**agent_a_kwargs)
+        self.agent_b = get_agent(**agent_b_kwargs)
     
     def trump_and_declarer(self, bidding_info, declarer_starter):
         '''
