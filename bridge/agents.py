@@ -260,10 +260,41 @@ class RNN_MCTSAgent(MCTSAgent):
         possible_hands = self.decode_hands(guesses, state)
         return possible_hands
 
-
-AGENT_DICT = {
-    "Random": RandomAgent,
-    "DDS": DDSAgent,
-    "MCTS": MCTSAgent,
-    "RNN_MCTS": RNN_MCTSAgent
+GENERATE_HANDS = {
+    'uniform_hands': uniform_hands,
+    'suit_hands': suit_hands
 }
+
+def get_agent(
+    name: str,
+    n: int,
+    reduction: str,
+    generate_hands: str,
+    max_threads: int,
+    model_path: str,
+    generation_mode: str,
+    t: float
+) -> BaseAgent:
+    if name == "Random":
+        return RandomAgent()
+    elif name == "DDS":
+        return DDSAgent(max_threads=max_threads)
+    elif name == "MCTS":
+        return MCTSAgent(
+            n=n,
+            generate_hands=GENERATE_HANDS[generate_hands],
+            reduction=reduction,
+            max_threads=max_threads
+        )
+    elif name == "RNN":
+        return RNN_MCTSAgent(
+            n=n,
+            generate_hands=GENERATE_HANDS[generate_hands],
+            reduction=reduction,
+            max_threads=max_threads,
+            model_path=model_path,
+            generation_mode=generation_mode,
+            t=t
+        )
+    else:
+        raise ValueError(f"No such agent {name}: Required to be one of Random, DDS, MCTS or RNN")
