@@ -10,6 +10,9 @@ from bridge.state import State, Suit
 from bridge.hand import Card, Hand, hands2pbn
 from bridge.dds import dds_score
 from bridge.dds.utils import set_max_threads
+from bridge.bid_infer import Goren_bidding_infer
+
+from ipdb import set_trace as st
 
 @dataclass
 class BaseAgent(abc.ABC):
@@ -93,12 +96,12 @@ def suit_hands(state: State, n: int) -> List[List[Hand]]:
             num_cards_list[side][card.suit] += 1
     result = []
     for i in range(n):
-        assigned_cards = [[] for i in len(unknown_sides)]
+        assigned_cards = [[] for i in range(len(unknown_sides))]  
         for num_cards, cards in zip(num_cards_list, unknown_cards_list):
             shuffled_cards = np.random.permutation(cards)
             offset = 0
             for i, num in enumerate(num_cards):
-                assigned_cards[i] += shuffled_cards[offset:offset+num].tolist
+                assigned_cards[i] += shuffled_cards[offset:offset+num].tolist()
                 offset += num
         hands = copy.deepcopy(state.hands)
         for side, cards in zip(unknown_sides, assigned_cards):
@@ -106,10 +109,49 @@ def suit_hands(state: State, n: int) -> List[List[Hand]]:
         result.append(hands)
     return result
 
+
+def suit_hands_backup(state: State, n: int) -> List[List[Hand]]:
+    '''
+    suit: ['♠', '♥', '♦', '♣']
+    '''
+    unknown_sides = get_unknown_sides(state)
+    unknown_cards_list = [[] for i in range(4)]
+    num_cards_list = [[0] * 4 for i in range(4)]
+    for side in unknown_sides:
+        for card in state.hands[side].remain_cards:
+            unknown_cards_list[card.suit].append(card) # remaining hands card: list of ['♠', '♥', '♦', '♣']
+            num_cards_list[side][card.suit] += 1 # suit number for each player, ex: [[0, 0, 0, 0], [4, 2, 4, 3], [5, 6, 1, 1], [2, 3, 4, 4]]
+    result = []
+    for i in range(n):
+        assigned_cards = [[] for i in range(len(unknown_sides))] # add range
+        for ii, cards in enumerate(unknown_cards_list): # per suit
+            shuffled_cards = np.random.permutation(cards)
+            offset = 0
+            for iii, side_index in enumerate(unknown_sides):
+                num = num_cards_list[side_index][ii]
+                assigned_cards[iii] += shuffled_cards[offset:offset+num].tolist()
+                offset += num
+        hands = copy.deepcopy(state.hands)
+        for side, cards in zip(unknown_sides, assigned_cards):
+            hands[side] = Hand(remain_cards=cards)
+        result.append(hands)
+    return result
+
+
+def bidding_inference_hands(state: State, n: int) -> List[List[Hand]]:
+    '''
+    suit: ['♠', '♥', '♦', '♣']
+    '''
+    unknown_sides = get_unknown_sides(state)
+    result = Goren_bidding_infer(state, unknown_sides,nn=n)
+    # st()
+    return result
+
+
 @dataclass
 class MCTSAgent(BaseAgent):
     n: int=10
-    generate_hands: Callable[[State, int], List[List[Hand]]]=uniform_hands
+    generate_hands: Callable[[State, int], List[List[Hand]]]=bidding_inference_hands # uniform_hands, bidding_inference_hands, suit_hands, suit_hands_backup
     reduction: Literal['mean', 'max', 'min']='mean'
     max_threads: int=0
 
