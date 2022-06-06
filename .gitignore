@@ -9,3 +9,6 @@ data/
 # Models
 lightning_logs/
 ckpt/
+
+## Loggings
+logs/

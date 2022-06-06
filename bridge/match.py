@@ -2,6 +2,8 @@ from dataclasses import dataclass, field, InitVar
 from typing import List, Dict, Any
 import random
 import copy
+from pathlib import Path
+import json
 
 import numpy as np
 from tqdm import tqdm
@@ -27,6 +29,7 @@ class Match:
     agent_b_kwargs: InitVar[Dict[str, Any]]
     num_games: int = 100
     num_cards_in_hand: int = 13
+    output_file: str=None
     agent_a: BaseAgent = field(init=False)
     agent_b: BaseAgent = field(init=False)
 
@@ -59,6 +62,7 @@ class Match:
         a_scores = []
         progress_bar = tqdm(range(self.num_games))
         cnt = 1
+        logs = []
         while cnt <= self.num_games:
             hands = [
                 Hand(remain_cards=cards.tolist())
@@ -104,6 +108,25 @@ class Match:
                 declarer_starter=declarer_starter
             )
             result_2 = game.run()
+            bidding_length = sum(not isinstance(b, int) for b in bidding_result)
+            logs.extend([
+                {
+                    'trump': trump,
+                    'is_declarer': True,
+                    'declarer_goal': declarer_goal,
+                    'tricks': result_1.tricks[0],
+                    'win': result_1.winner == 'declarer',
+                    'bidding_length': bidding_length
+                },
+                {
+                    'trump': trump,
+                    'is_declarer': False,
+                    'declarer_goal': declarer_goal,
+                    'tricks': result_2.tricks[1],
+                    'win': result_2.winner == 'defender',
+                    'bidding_length': bidding_length
+                }
+            ])
             a_scores.append(result_1.tricks[0] - result_2.tricks[0])
             if result_1.winner == result_2.winner:
                 win_counts['draw'] += 1
@@ -116,3 +139,8 @@ class Match:
             cnt += 1
         a_scores = np.array(a_scores)
         print(f"Agent A => Win-Draw-Loss: {win_counts['win']}-{win_counts['draw']}-{win_counts['loss']} | Score: {a_scores.mean():.2f} (std: {a_scores.std():.2f})")
+        if self.output_file is not None:
+            output_file = Path(self.output_file)
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(output_file, 'w') as f:
+                json.dump(logs, f, indent=4)
