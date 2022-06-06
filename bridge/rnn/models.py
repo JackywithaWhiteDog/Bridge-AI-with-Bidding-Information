@@ -14,7 +14,8 @@ class HandsClassifier(pl.LightningModule):
         dropout: float=0.0,
         bidirectional: bool=True,
         lr: float=1e-3,
-        weight_decay: float=0.0
+        weight_decay: float=0.0,
+        gru_input_size: int=36
     ):
         super().__init__()
         # self.hand_fc = nn.Sequential(
@@ -28,7 +29,7 @@ class HandsClassifier(pl.LightningModule):
         # )
         self.bidirectional = bidirectional
         self.gru = nn.GRU(
-            input_size=36,
+            input_size=gru_input_size,
             hidden_size=gru_hidden_size,
             num_layers=num_layers,
             dropout=dropout,

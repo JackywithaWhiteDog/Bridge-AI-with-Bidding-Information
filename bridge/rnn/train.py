@@ -58,6 +58,14 @@ def parse_args() -> Namespace:
     # Fine tuning
     parser.add_argument("--tune", action="store_true")
 
+    # Resume
+    parser.add_argument(
+        "--resume",
+        type=Path,
+        help="Model path to resume",
+        default=None,
+    )
+
     args = parser.parse_args()
     return args
 
@@ -78,15 +86,19 @@ def train(args: Namespace) -> None:
         num_workers=args.num_workers
     )
 
-    model = HandsClassifier(
-        hand_hidden_size=args.hand_hidden_size,
-        gru_hidden_size=args.gru_hidden_size,
-        num_layers=args.num_layers,
-        dropout=args.dropout,
-        bidirectional=args.bidirectional,
-        lr=args.lr,
-        weight_decay=args.weight_decay
-    )
+    if args.resume:
+        model = HandsClassifier.load_from_checkpoint(args.resume)
+        print(f"Load checkpoint from {args.resume}")
+    else:
+        model = HandsClassifier(
+            hand_hidden_size=args.hand_hidden_size,
+            gru_hidden_size=args.gru_hidden_size,
+            num_layers=args.num_layers,
+            dropout=args.dropout,
+            bidirectional=args.bidirectional,
+            lr=args.lr,
+            weight_decay=args.weight_decay
+        )
 
     # Train the model
     early_stopping = EarlyStoppingWarmup(
