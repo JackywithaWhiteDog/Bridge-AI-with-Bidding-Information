@@ -5,6 +5,7 @@ __pycache__
 
 # Dataset
 data/
+matches/
 
 # Models
 lightning_logs/
