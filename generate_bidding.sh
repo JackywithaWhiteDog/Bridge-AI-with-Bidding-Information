@@ -4,15 +4,15 @@ set -e
 
 python ./bid_generator.py \
     --seed 1123 \
-    --data_size 10000 \
-    --output_file ./data/train.txt
+    --data_size 100000 \
+    --output_file ./data/train_100k.txt
 
 python ./bid_generator.py \
     --seed 2022 \
-    --data_size 10000 \
-    --output_file ./data/valid.txt
+    --data_size 100000 \
+    --output_file ./data/100k/valid.txt
 
 python ./bid_generator.py \
     --seed 530 \
-    --data_size 10000 \
-    --output_file ./data/test.txt
+    --data_size 100000 \
+    --output_file ./data/100k/test.txt

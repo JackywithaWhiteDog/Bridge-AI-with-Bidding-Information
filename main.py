@@ -125,6 +125,12 @@ def parse_args() -> argparse.Namespace:
         help="Number of cards in players' hands; generally be 13 or 5. (Default: 13)"
     )
     parser.add_argument(
+        '--output_file',
+        type=str,
+        default=None,
+        help="Path to output matching results"
+    )
+    parser.add_argument(
         '--seed',
         type=int,
         default=None,
@@ -146,7 +152,8 @@ if __name__ == '__main__':
         agent_a_kwargs=agent_a_kwargs,
         agent_b_kwargs=agent_b_kwargs,
         num_games=args.num_games,
-        num_cards_in_hand=args.num_cards_in_hand
+        num_cards_in_hand=args.num_cards_in_hand,
+        output_file=args.output_file
     )
     match.run()
     print("Completed")
