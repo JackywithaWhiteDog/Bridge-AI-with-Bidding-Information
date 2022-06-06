@@ -40,3 +40,17 @@ def hands2pbn(hands: List[Hand], declarer: Literal[0, 1, 2, 3]=0) -> str:
         for i in range(4)
     )
     return result
+
+def pbn2hands(pbn: str) -> List[Hand]:
+    first = pbn[0]
+    first_idx = Side.str2idx(first, simple=True)
+    hands = pbn[2:].split(" ")
+    hands = hands[((4-first_idx) % 4):] + hands[:((4-first_idx) % 4)]
+    result = []
+    for hand in hands:
+        remain_cards = []
+        for suit, ranks in enumerate(hand.split(".")):
+            for rank in ranks:
+                remain_cards.append(Card(suit=suit, rank=Rank.str2rank(rank)))
+        result.append(Hand(remain_cards=remain_cards))
+    return result

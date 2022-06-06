@@ -9,10 +9,10 @@ import numpy as np
 from tqdm import tqdm
 
 from bridge.constants import Suit, Side
-from bridge.hand import Card, Hand
+from bridge.hand import Card, Hand, pbn2hands
 from bridge.game import Game
 from bridge.agents import BaseAgent, get_agent
-from bridge.bid import Goren_bidding, Bid
+from bridge.bid import Goren_bidding, Bid, str2biddings
 
 from ipdb import set_trace as st
 
@@ -29,9 +29,11 @@ class Match:
     agent_b_kwargs: InitVar[Dict[str, Any]]
     num_games: int = 100
     num_cards_in_hand: int = 13
+    match_file: str=None
     output_file: str=None
     agent_a: BaseAgent = field(init=False)
     agent_b: BaseAgent = field(init=False)
+    matches: List[Dict[str, Any]] = field(init=False)
 
     def __post_init__(self, agent_a_kwargs, agent_b_kwargs):
         if self.num_cards_in_hand > 13 or self.num_cards_in_hand <= 0:
@@ -39,6 +41,13 @@ class Match:
 
         self.agent_a = get_agent(**agent_a_kwargs)
         self.agent_b = get_agent(**agent_b_kwargs)
+
+        with open(self.match_file, "r") as f:
+            self.matches = json.load(f)
+            print(f"Load match data from {self.match_file}.")
+            if self.num_games > len(self.matches):
+                self.num_games = len(self.matches)
+                print(f"The number of games (={self.num_games}) is larger than data in match file ({len(self.matches)}). Set the number of game to {len(self.matches)}")
     
     def trump_and_declarer(self, bidding_info, declarer_starter):
         '''
@@ -64,24 +73,32 @@ class Match:
         cnt = 1
         logs = []
         while cnt <= self.num_games:
-            hands = [
-                Hand(remain_cards=cards.tolist())
-                for cards in np.split(np.random.permutation(DECK)[:4*self.num_cards_in_hand], 4)
-            ]
-            # trump = random.choice(Suit.to_list(nt=True))
-            # declarer = random.choice(Side.to_list())
-            # st()
-            declarer_starter = random.choice(Side.to_list())
-            bidding_game = Goren_bidding(            
-                hands=copy.deepcopy(hands),
-                declarer_starter=declarer_starter,
-                num_cards_in_hand=13)
-            bidding_result = bidding_game.run()
-            if [i.to_str() for i in bidding_result[:4] if i != 0].count('pass') == 4:
-                continue
-            trump, declarer_goal, declarer = self.trump_and_declarer(bidding_result, declarer_starter)
-            # progress_bar.set_description(f"[Game {i+1}/{self.num_games}] Deal: 1{Suit.idx2str(trump, simple=True)} | Declarer: {Side.idx2str(declarer, simple=False)}")
-            
+            if self.matches is None:
+                hands = [
+                    Hand(remain_cards=cards.tolist())
+                    for cards in np.split(np.random.permutation(DECK)[:4*self.num_cards_in_hand], 4)
+                ]
+                # trump = random.choice(Suit.to_list(nt=True))
+                # declarer = random.choice(Side.to_list())
+                # st()
+                declarer_starter = random.choice(Side.to_list())
+                bidding_game = Goren_bidding(            
+                    hands=copy.deepcopy(hands),
+                    declarer_starter=declarer_starter,
+                    num_cards_in_hand=13)
+                bidding_result = bidding_game.run()
+                if [i.to_str() for i in bidding_result[:4] if i != 0].count('pass') == 4:
+                    continue
+                trump, declarer_goal, declarer = self.trump_and_declarer(bidding_result, declarer_starter)
+                # progress_bar.set_description(f"[Game {i+1}/{self.num_games}] Deal: 1{Suit.idx2str(trump, simple=True)} | Declarer: {Side.idx2str(declarer, simple=False)}")
+            else:
+                data = self.matches[cnt-1]
+                hands = pbn2hands(data['deal'])
+                declarer_starter = Side.str2idx(data['declarer_starter'], simple=True)
+                bidding_result = str2biddings(data['bidding'])
+                declarer = Side.str2idx(data['declarer'], simple=True)
+                declarer_goal = int(data["contract"][0]) + 6
+                trump = Suit.char2idx(data["contract"][1:].replace("X", ""))
             game = Game(
                 declarer_agent=self.agent_a,
                 defender_agent=self.agent_b,
