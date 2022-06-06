@@ -1,6 +1,6 @@
 #!bin/bash
 
-DEVICE=5
+DEVICE=4
 
 # NULL result
 # Null Result: (0.6254173517227173, 0.3752250075340271, 0.0)
@@ -251,11 +251,23 @@ DEVICE=5
 
 # Version 36
 # add layers to gru from version 22
+# CUDA_VISIBLE_DEVICES=${DEVICE} \
+# python ./bridge/rnn/train.py \
+#     --lr 2e-3 \
+#     --batch_size 256 \
+#     --num_layers 3 \
+#     --dropout 0 \
+#     --hand_hidden_size 208 \
+#     --bidirectional
+
+# Version 37
+# Use 100k data from version 24 (10k data)
 CUDA_VISIBLE_DEVICES=${DEVICE} \
 python ./bridge/rnn/train.py \
     --lr 2e-3 \
     --batch_size 256 \
-    --num_layers 3 \
+    --num_layers 1 \
     --dropout 0 \
     --hand_hidden_size 208 \
-    --bidirectional
+    --bidirectional \
+    --data_dir ./data/100k
