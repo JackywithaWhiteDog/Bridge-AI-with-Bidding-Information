@@ -15,8 +15,6 @@ import copy
 import math
 
 
-def Goren_bidding_infer_forward(state):
-    return None
 
 def remain_to_hand(hands):
     for i in range(4):
@@ -38,6 +36,105 @@ def bid_similarity(bid_gt, bid_generate):
         if bid in valid_bid_generate and bid.suit!=5:
             score+=2
     return score
+
+
+def Goren_bidding_infer_forward(state, unknown_sides):
+    """
+    bidding system inference (Goren), used during playing phase
+    this funciton would gauss the hands using the bidding information
+    """
+    unknown_cards_list = [[] for i in range(4)]
+    unknown_cards_list_played = [[] for i in range(4)]
+    for side in unknown_sides:
+        for card in state.hands[side].remain_cards:
+            unknown_cards_list[card.suit].append(card) # remaining hands card: list of ['♠', '♥', '♦', '♣']
+        for card in state.hands[side].cards_played:
+            unknown_cards_list_played[card.suit].append(card) # played cards: list of ['♠', '♥', '♦', '♣'] of unknown side
+    
+    hcp_suit, count_suit = calculate_remaining_HCP(unknown_cards_list)
+    _, played_count_suit = calculate_remaining_HCP(unknown_cards_list_played)
+    original_count_suit = np.array(count_suit)+np.array(played_count_suit)
+    original_count_suit = original_count_suit.tolist() # only for unknown sides
+    
+    # get bidding information
+    dic_info = [None for i in range(4)]
+    for i, current_bid in enumerate(state.bidding_info):
+        if current_bid == 0:
+            break
+        who_bid = (state.declarer_starter + i) % 4
+        current_bid = current_bid.to_str()
+        if state.bidding_info[i-2] == 0:
+            hcp_estimate, suit_estimate = first_bid_infer(current_bid)
+        else:
+            hcp_estimate, suit_estimate = response_bid_infer(current_bid)
+        dic_info[who_bid] = [hcp_estimate, suit_estimate]
+    # calculate player's rank
+    rank_for_distribution, valid_rank = calculate_ranks(dic_info)
+    
+    # assign suit distribution according to the bidding info and player's rank
+    assigned_suit_distribution = [[None] * 4 for i in range(4)]
+    for i in rank_for_distribution:
+        if i not in unknown_sides:
+            continue
+        if i not in valid_rank:
+            continue
+        suit_distribution = [None]*4
+        for ii in range(4): # per suit
+            this_suit = dic_info[i][1][ii]
+            if this_suit!=None:
+                # st()
+                suit_distribution[ii] = np.random.choice(range(this_suit[0],this_suit[1]+1), p=calculate_prob(original_count_suit[ii],this_suit[0],this_suit[1],len(unknown_sides)))
+        assigned_suit_distribution[i] = suit_distribution
+    suit_gauss = [[None] * 4 for i in range(4)]
+    for i in unknown_sides:
+        suit_gauss[i] = fill_13(assigned_suit_distribution[i],13)
+    # To give everyone 13 cards
+    refined_assigned_suit_distribution = refine_suit_distribution(suit_gauss, unknown_sides, original_count_suit)
+
+    # refined_assigned_suit_distribution is the original gauss (everyone has 13 cards), next, we minux the played cards.
+    # st()
+    played_suit = [[] for i in range(4)]
+    for side in unknown_sides:
+        player_suit_played = [0 for i in range(4)]
+        for card in state.hands[side].cards_played:
+            player_suit_played[card.suit]+=1 # played cards: list of ['♠', '♥', '♦', '♣'] of unknown side
+        played_suit[side] = player_suit_played
+    refined_assigned_suit_distribution_zero = copy.deepcopy(refined_assigned_suit_distribution)
+    # print(refined_assigned_suit_distribution, played_suit)
+    for side in unknown_sides:
+        refined_assigned_suit_distribution_zero[side] = refined_assigned_suit_distribution[side] - np.array(played_suit[side])
+    for side in range(4):
+        if side in unknown_sides:
+            continue
+        else:
+            refined_assigned_suit_distribution_zero[side] = np.array([0,0,0,0])
+    refined_assigned_suit_distribution_non_zero = force_non_zero(refined_assigned_suit_distribution_zero, unknown_sides)
+    # st()
+    return refined_assigned_suit_distribution_non_zero.tolist()
+
+def force_non_zero(mm, unknown_sides):
+    refined_assigned_suit_distribution_zero = copy.deepcopy(mm)
+    # print(mm)
+    # if mm[2][0]==-1 and mm[2][3]==2:
+        # st()
+    for side in unknown_sides:
+        assume_distri = refined_assigned_suit_distribution_zero[side]
+        # st()
+        for i in range(4):
+            while assume_distri[i] < 0:
+                refined_assigned_suit_distribution_zero[side][i]+=1
+                suit_minus = np.random.choice([ii for ii in range(4) if assume_distri[ii]>0])
+                # try:
+                who_give = np.random.choice([ii for ii in unknown_sides if refined_assigned_suit_distribution_zero[ii][i]>0 and ii!=side])
+                # except:
+                #     st()
+                refined_assigned_suit_distribution_zero[side][suit_minus]-=1
+                refined_assigned_suit_distribution_zero[who_give][i]-=1
+                refined_assigned_suit_distribution_zero[who_give][suit_minus]+=1
+    # if -1 in assume_distri:
+        # st()
+    return refined_assigned_suit_distribution_zero
+
 
 def Goren_bidding_infer(state, unknown_sides):
     """
@@ -96,23 +193,55 @@ def Goren_bidding_infer(state, unknown_sides):
     assigned_suit_distribution = refine_suit_distribution(assigned_suit_distribution, state, unknown_sides)
     return assigned_suit_distribution, unknown_cards_list
 
-def refine_suit_distribution(assigned_suit_distribution, state, unknown_sides):
-    for i in unknown_sides:
-        count_suit = [0, 0, 0, 0]
-        for hand_card in state.hands[i].remain_cards:
-            count_suit[hand_card.suit] += 1
-        assigned_suit_distribution[i] -= state
-    return
+def refine_suit_distribution(suit_gauss, unknown_sides, original_count_suit):
+    suit_gauss = np.array(suit_gauss)
+    # print(f'{suit_gauss=}')
+    # print(f'{unknown_sides=}')
+    # print(f'{original_count_suit=}')
+    for i in range(4):
+        # print(suit_gauss)
+        # st()
+        while sum([suit_gauss[ii][i] for ii in unknown_sides])>original_count_suit[i]:
+            who_decade = np.random.choice(unknown_sides)
+            suit_gauss[who_decade][i] -= 1
+            which_suit = np.random.choice(range(i+1,4))
+            suit_gauss[who_decade][which_suit] += 1
+        while sum([suit_gauss[ii][i] for ii in unknown_sides])<original_count_suit[i]:
+            who_decade = np.random.choice(unknown_sides)
+            suit_gauss[who_decade][i] += 1
+            which_suit = np.random.choice(range(i+1,4))
+            suit_gauss[who_decade][which_suit] -= 1
+    return suit_gauss
 
 
 def fill_13(suit_db, num_cards):
     suit = [i if i!=None else 0 for i in suit_db]
     to_fill = [i for i in range(4) if suit_db[i] == None]
     cnt = 0
+    mn=len(to_fill) if len(to_fill)!=0 else 4
+    # st()
     while sum(suit)<num_cards:
-        index = to_fill[cnt%len(to_fill)]
+        if len(to_fill)!=0:
+            index = to_fill[cnt%mn]
+        else:
+            index = 0
         suit[index] = suit[index] + 1
         cnt+=1
+    while sum(suit)>num_cards:
+        suit[-1] = suit[-1] - 1
+    
+    return suit
+
+def fill_final_13(suit_db, num_cards):
+    if suit_db[0] is None:
+        return suit_db
+    suit = copy.deepcopy(suit_db)
+    while sum(suit)<num_cards:
+        index = np.random.choice([0,1,2,3])
+        suit[index] = suit[index] + 1
+    while sum(suit)>num_cards:
+        index = np.random.choice([0,1,2,3])
+        suit[index] = suit[index] - 1
     return suit
 
 def calculate_prob(total,low,high,num_players):
@@ -120,7 +249,11 @@ def calculate_prob(total,low,high,num_players):
     prob = []
     for i in sample:
         prob.append((math.comb(total, i) * (num_players-1)**(total-i) / num_players**total))
-    prob = [ii/sum(prob) for ii in prob]
+    try:
+        prob = [ii/sum(prob) for ii in prob]
+    except:
+        prob = np.ones(len(sample))
+        prob = [ii/sum(prob) for ii in prob]
     return prob
 
 def calculate_ranks(dic_info):

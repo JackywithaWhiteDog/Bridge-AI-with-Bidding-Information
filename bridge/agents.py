@@ -150,13 +150,16 @@ def bidding_inference_hands(state: State, n: int) -> List[List[Hand]]:
     '''
     unknown_sides = get_unknown_sides(state)
     unknown_cards_list = [[] for i in range(4)]
-    # num_cards_list = [[0] * 4 for i in range(4)]
-    unknown_cards = []
+    num_cards_list_no_use = [[0] * 4 for i in range(4)]
     for side in unknown_sides:
         for card in state.hands[side].remain_cards:
             unknown_cards_list[card.suit].append(card) # remaining hands card: list of ['♠', '♥', '♦', '♣']
-            # num_cards_list[side][card.suit] += 1 # suit number for each player, ex: [[0, 0, 0, 0], [4, 2, 4, 3], [5, 6, 1, 1], [2, 3, 4, 4]]
+            num_cards_list_no_use[side][card.suit] += 1 # suit number for each player, ex: [[0, 0, 0, 0], [4, 2, 4, 3], [5, 6, 1, 1], [2, 3, 4, 4]]
+    # st()
     num_cards_list = Goren_bidding_infer_forward(state, unknown_sides)
+    # if np.sum(num_cards_list_no_use)!= np.sum(num_cards_list):
+        # st()
+    # print(num_cards_list_no_use,num_cards_list)
     result = []
     result_score = []
     for i in range(n*10):
