@@ -10,6 +10,7 @@ class Suit:
     NT: ClassVar[int] = 4
 
     names: ClassVar[List[str]] = ["Spades", "Hearts", "Diamonds", "Clubs", "No Trump"]
+    char_names: ClassVar[List[str]] = ['S', 'H', 'D', 'C', "NT"]
     simple_names: ClassVar[List[str]] = ['♠', '♥', '♦', '♣', "NT"]
 
     @staticmethod
@@ -24,6 +25,10 @@ class Suit:
         if simple:
             return Suit.simple_names[suit]
         return Suit.names[suit]
+
+    @staticmethod
+    def char2idx(char: str) -> int:
+        return Suit.char_names.index(char)
 
 @dataclass
 class Side:
@@ -57,6 +62,12 @@ class Side:
             return Side.simple_names[suit]
         return Side.names[suit]
 
+    @staticmethod
+    def str2idx(s, simple=True):
+        if simple:
+            return Side.simple_names.index(s)
+        return Side.names.index(s)
+
 @dataclass
 class Rank:
     names: ClassVar[List[str]] = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A']
@@ -65,3 +76,7 @@ class Rank:
     def idx2str(rank):
         '''rank = 2~14'''
         return Rank.names[int(rank - 2)]
+
+    @staticmethod
+    def str2rank(s):
+        return Rank.names.index(s) + 2

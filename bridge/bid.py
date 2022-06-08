@@ -209,6 +209,25 @@ class Goren_bidding:
         else:
             return False
 
+def parse_bid(b: str) -> Bid:
+    if b == "Pass":
+        return Bid(suit=5, rank=0)
+    else:
+        rank = b[:1]
+        suit = b[1:]
+        if suit in ["N", "NT"]:
+            return Bid(suit=4, rank=int(rank))
+        else:
+            return Bid(suit=(3 - Suit.char2idx(suit)), rank=int(rank))
+
+def str2biddings(s: str) -> np.ndarray:
+    bidding_table = np.zeros(38, dtype=Bid)
+    bidding = s.replace("XX", "Pass").replace("X", "Pass").split(" ")
+    for i, b in enumerate(bidding):
+        if b:
+            bidding_table[i] = parse_bid(b)
+    return bidding_table
+
 
 
 def set_seed(seed):

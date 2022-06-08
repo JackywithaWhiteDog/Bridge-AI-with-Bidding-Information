@@ -1,6 +1,6 @@
 #!bin/bash
 
-DEVICE=4
+DEVICE=5
 
 # NULL result
 # Null Result: (0.6254173517227173, 0.3752250075340271, 0.0)
@@ -262,6 +262,18 @@ DEVICE=4
 
 # Version 37
 # Use 100k data from version 24 (10k data)
+# CUDA_VISIBLE_DEVICES=${DEVICE} \
+# python ./bridge/rnn/train.py \
+#     --lr 2e-3 \
+#     --batch_size 256 \
+#     --num_layers 1 \
+#     --dropout 0 \
+#     --hand_hidden_size 208 \
+#     --bidirectional \
+#     --data_dir ./data/100k
+
+# Version 38
+# Fine-tune on human data from 37
 CUDA_VISIBLE_DEVICES=${DEVICE} \
 python ./bridge/rnn/train.py \
     --lr 2e-3 \
@@ -270,4 +282,5 @@ python ./bridge/rnn/train.py \
     --dropout 0 \
     --hand_hidden_size 208 \
     --bidirectional \
-    --data_dir ./data/100k
+    --data_dir ./data/human \
+    --resume ./ckpt/hands/20220605_2200/hands-epoch=12-valid_card_acc=0.47-valid_loss=0.26.ckpt
