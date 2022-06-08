@@ -31,7 +31,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         '--agent_a_generate_hands',
         type=str,
-        choices=['unifrom_hands', 'suit_hands'],
+        choices=['unifrom_hands', 'suit_hands', 'bid_infer_hands', 'bid_forward_infer'],
         default='uniform_hands',
         help="Function name for hands generation. Only use in MCTS agent. (Default: uniform_hands)"
     )
@@ -83,7 +83,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         '--agent_b_generate_hands',
         type=str,
-        choices=['unifrom_hands', 'suit_hands'],
+        choices=['unifrom_hands', 'suit_hands', 'bid_infer_hands', 'bid_forward_infer'],
         default='uniform_hands',
         help="Function name for hands generation. Only use in MCTS agent. (Default: uniform_hands)"
     )

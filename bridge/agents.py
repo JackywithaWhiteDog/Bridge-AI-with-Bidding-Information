@@ -12,7 +12,8 @@ from bridge.state import State, Suit, Side
 from bridge.hand import Card, Hand, hands2pbn
 from bridge.dds import dds_score
 from bridge.dds.utils import set_max_threads
-from bridge.bid_infer import Goren_bidding_infer
+from bridge.bid_infer import Goren_bidding_infer, Goren_bidding_infer_forward, bid_similarity, remain_to_hand
+from bridge.bid import Bid, Goren_bidding
 from bridge.rnn.models import HandsClassifier
 
 from ipdb import set_trace as st
@@ -89,6 +90,7 @@ def uniform_hands(state: State, n: int) -> List[List[Hand]]:
         result.append(hands)
     return result
 
+
 def suit_hands(state: State, n: int) -> List[List[Hand]]:
     unknown_sides = get_unknown_sides(state)
     unknown_cards_list = [[] for i in range(4)]
@@ -146,15 +148,73 @@ def bidding_inference_hands(state: State, n: int) -> List[List[Hand]]:
     suit: ['♠', '♥', '♦', '♣']
     '''
     unknown_sides = get_unknown_sides(state)
-    result = Goren_bidding_infer(state, unknown_sides,nn=n)
-    # st()
+    assigned_suit_distribution, unknown_cards_list = Goren_bidding_infer(state, unknown_sides)
+
+    result = []
+    for _ in range(n):
+        assigned_cards = [[] for i in range(len(unknown_sides))] # add range
+        for ii, cards in enumerate(unknown_cards_list): # per suit
+            shuffled_cards = np.random.permutation(cards)
+            offset = 0
+            for iii, side_index in enumerate(unknown_sides):
+                num = assigned_suit_distribution[side_index][ii]
+                assigned_cards[iii] += shuffled_cards[offset:offset+num].tolist()
+                offset += num
+        hands = copy.deepcopy(state.hands)
+        # st()
+        for side, cards in zip(unknown_sides, assigned_cards):
+            hands[side] = Hand(remain_cards=cards, cards_played=hands[side].cards_played)
+        if len(hands[0].remain_cards) != len(state.hands[0].remain_cards):
+            st()
+        else:
+            print('pass')
+        result.append(hands)
     return result
 
+
+def bidding_inference_forward(state: State, n: int) -> List[List[Hand]]:
+    '''
+    suit: ['♠', '♥', '♦', '♣']
+    use bid_similarity
+    '''
+    unknown_sides = get_unknown_sides(state)
+    unknown_cards_list = [[] for i in range(4)]
+    num_cards_list = [[0] * 4 for i in range(4)]
+    for side in unknown_sides:
+        for card in state.hands[side].remain_cards:
+            unknown_cards_list[card.suit].append(card) # remaining hands card: list of ['♠', '♥', '♦', '♣']
+            num_cards_list[side][card.suit] += 1 # suit number for each player, ex: [[0, 0, 0, 0], [4, 2, 4, 3], [5, 6, 1, 1], [2, 3, 4, 4]]
+    
+    result = []
+    result_score = []
+    for i in range(n*10):
+        assigned_cards = [[] for i in range(len(unknown_sides))] # add range
+        for ii, cards in enumerate(unknown_cards_list): # per suit
+            shuffled_cards = np.random.permutation(cards)
+            offset = 0
+            for iii, side_index in enumerate(unknown_sides):
+                num = num_cards_list[side_index][ii]
+                assigned_cards[iii] += shuffled_cards[offset:offset+num].tolist()
+                offset += num
+        hands = copy.deepcopy(state.hands)
+        for side, cards in zip(unknown_sides, assigned_cards):
+            hands[side] = Hand(cards_played=state.hands[side].cards_played, remain_cards=cards)
+        hands_original = remain_to_hand(copy.deepcopy(hands))
+        game = Goren_bidding(
+            hands=copy.deepcopy(hands_original),
+            declarer_starter=state.declarer_starter,
+            num_cards_in_hand=13)
+        bid_generated = game.run()
+        score = bid_similarity(state.bidding_info, bid_generated)
+        result_score.append(score)
+        result.append(hands)
+    return np.array(result)[np.argsort(result_score)[:n]].tolist()
 
 @dataclass
 class MCTSAgent(BaseAgent):
     n: int=10
-    generate_hands: Callable[[State, int], List[List[Hand]]]=bidding_inference_hands # uniform_hands, bidding_inference_hands, suit_hands, suit_hands_backup
+    generate_hands: Callable[[State, int], List[List[Hand]]]=bidding_inference_forward 
+    # uniform_hands, bidding_inference_hands, suit_hands, suit_hands_backup, bidding_inference_forward
     reduction: Literal['mean', 'max', 'min']='mean'
     max_threads: int=0
 
@@ -304,7 +364,9 @@ class RNN_MCTSAgent(MCTSAgent):
 
 GENERATE_HANDS = {
     'uniform_hands': uniform_hands,
-    'suit_hands': suit_hands
+    'suit_hands': suit_hands,
+    'bid_infer_hands': bidding_inference_hands,
+    'bid_forward_infer': bidding_inference_forward
 }
 
 def get_agent(

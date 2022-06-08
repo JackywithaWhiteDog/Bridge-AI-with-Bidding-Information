@@ -15,21 +15,42 @@ import copy
 import math
 
 
-def Goren_bidding_infer(state, unknown_sides, nn):
+def Goren_bidding_infer_forward(state):
+    return None
+
+def remain_to_hand(hands):
+    for i in range(4):
+        hands[i].remain_cards = hands[i].remain_cards + hands[i].cards_played
+        hands[i].cards_played = []
+    return hands
+
+def bid_similarity(bid_gt, bid_generate):
+    valid_bid_gt = [i for i in bid_gt if i != 0]
+    valid_bid_generate = [i for i in bid_generate if i != 0]
+    score = 0
+    # exactly the same (same bid and position)
+    for i, bid in enumerate(valid_bid_gt):
+        if i < len(valid_bid_generate):
+            if bid==valid_bid_generate[i] and bid.suit!=5:
+                score+=10
+    # gt appear in the simulated bidding
+    for i, bid in enumerate(valid_bid_gt):
+        if bid in valid_bid_generate and bid.suit!=5:
+            score+=2
+    return score
+
+def Goren_bidding_infer(state, unknown_sides):
     """
     bidding system inference (Goren), used during playing phase
     this funciton would gauss the hands using the bidding information
     """
     unknown_cards_list = [[] for i in range(4)]
-    unknow_card_num = 0
     for side in unknown_sides:
         for card in state.hands[side].remain_cards:
             unknown_cards_list[card.suit].append(card) # remaining hands card: list of ['♠', '♥', '♦', '♣']
-            unknow_card_num+=1
     hcp_suit, count_suit = calculate_remaining_HCP(unknown_cards_list)
     count_suit_remaining= np.array(count_suit)
-    num_cards = unknow_card_num//len(unknown_sides)
-    # st()
+    num_cards = [len(state.hands[i].remain_cards) for i in range(4)]
     # assigned_cards = [[] for i in range(len(unknown_sides))]
     # get bidding information
     dic_info = [None for i in range(4)]
@@ -62,34 +83,31 @@ def Goren_bidding_infer(state, unknown_sides, nn):
                 # st()
                 suit_distribution[ii] = np.random.choice(range(this_suit[0],this_suit[1]+1), p=calculate_prob(count_suit[ii],this_suit[0],this_suit[1],len(unknown_sides)))
         assigned_suit_distribution[i] = suit_distribution
+    # st()
     for i in valid_rank:
-        suit_gauss = fill_13(assigned_suit_distribution[i],num_cards)
-        count_suit_remaining-=np.array(suit_gauss)
+        suit_gauss = fill_13(assigned_suit_distribution[i],num_cards[i])
+        if i in unknown_sides:
+            count_suit_remaining-=np.array(suit_gauss)
         assigned_suit_distribution[i] = suit_gauss
     unvalid = [i for i in unknown_sides if i not in valid_rank]
+    # st()
     for i in range(len(unvalid)-1):
-        suit_gauss = fill_13(assigned_suit_distribution[unvalid[i]], num_cards)
+        suit_gauss = fill_13(assigned_suit_distribution[unvalid[i]], num_cards[unvalid[i]])
         assigned_suit_distribution[unvalid[i]] =suit_gauss
         count_suit_remaining-=np.array(suit_gauss)
     assigned_suit_distribution[unvalid[-1]] = count_suit_remaining.tolist()
-    st()
-
-    result = []
-    for _ in range(nn):
-        assigned_cards = [[] for i in range(len(unknown_sides))] # add range
-        for ii, cards in enumerate(unknown_cards_list): # per suit
-            shuffled_cards = np.random.permutation(cards)
-            offset = 0
-            for iii, side_index in enumerate(unknown_sides):
-                num = assigned_suit_distribution[side_index][ii]
-                assigned_cards[iii] += shuffled_cards[offset:offset+num].tolist()
-                offset += num
-        hands = copy.deepcopy(state.hands)
-        for side, cards in zip(unknown_sides, assigned_cards):
-            hands[side] = Hand(remain_cards=cards)
-        result.append(hands)
     # st()
-    return result
+    assigned_suit_distribution = refine_suit_distribution(assigned_suit_distribution, state, unknown_sides)
+    return assigned_suit_distribution, unknown_cards_list
+
+def refine_suit_distribution(assigned_suit_distribution, state, unknown_sides):
+    for i in unknown_sides:
+        count_suit = [0, 0, 0, 0]
+        for hand_card in state.hands[i].remain_cards:
+            count_suit[hand_card.suit] += 1
+        assigned_suit_distribution[i] -= state
+    return
+
 
 def fill_13(suit_db, num_cards):
     suit = [i if i!=None else 0 for i in suit_db]

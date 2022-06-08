@@ -2,6 +2,7 @@
 .python-version
 __pycache__
 *.txt
+run2.sh
 
 # Dataset
 data/
