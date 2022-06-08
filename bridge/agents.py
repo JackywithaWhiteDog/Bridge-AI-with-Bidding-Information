@@ -91,7 +91,7 @@ def uniform_hands(state: State, n: int) -> List[List[Hand]]:
     return result
 
 
-def suit_hands(state: State, n: int) -> List[List[Hand]]:
+def suit_hands_original(state: State, n: int) -> List[List[Hand]]:
     unknown_sides = get_unknown_sides(state)
     unknown_cards_list = [[] for i in range(4)]
     num_cards_list = [[0] * 4 for i in range(4)]
@@ -115,7 +115,7 @@ def suit_hands(state: State, n: int) -> List[List[Hand]]:
     return result
 
 
-def suit_hands_backup(state: State, n: int) -> List[List[Hand]]:
+def suit_hands(state: State, n: int) -> List[List[Hand]]:
     '''
     suit: ['♠', '♥', '♦', '♣']
     '''
@@ -146,48 +146,21 @@ def suit_hands_backup(state: State, n: int) -> List[List[Hand]]:
 def bidding_inference_hands(state: State, n: int) -> List[List[Hand]]:
     '''
     suit: ['♠', '♥', '♦', '♣']
-    '''
-    unknown_sides = get_unknown_sides(state)
-    assigned_suit_distribution, unknown_cards_list = Goren_bidding_infer(state, unknown_sides)
-
-    result = []
-    for _ in range(n):
-        assigned_cards = [[] for i in range(len(unknown_sides))] # add range
-        for ii, cards in enumerate(unknown_cards_list): # per suit
-            shuffled_cards = np.random.permutation(cards)
-            offset = 0
-            for iii, side_index in enumerate(unknown_sides):
-                num = assigned_suit_distribution[side_index][ii]
-                assigned_cards[iii] += shuffled_cards[offset:offset+num].tolist()
-                offset += num
-        hands = copy.deepcopy(state.hands)
-        # st()
-        for side, cards in zip(unknown_sides, assigned_cards):
-            hands[side] = Hand(remain_cards=cards, cards_played=hands[side].cards_played)
-        if len(hands[0].remain_cards) != len(state.hands[0].remain_cards):
-            st()
-        else:
-            print('pass')
-        result.append(hands)
-    return result
-
-
-def bidding_inference_forward(state: State, n: int) -> List[List[Hand]]:
-    '''
-    suit: ['♠', '♥', '♦', '♣']
     use bid_similarity
     '''
     unknown_sides = get_unknown_sides(state)
     unknown_cards_list = [[] for i in range(4)]
-    num_cards_list = [[0] * 4 for i in range(4)]
+    # num_cards_list = [[0] * 4 for i in range(4)]
+    unknown_cards = []
     for side in unknown_sides:
         for card in state.hands[side].remain_cards:
             unknown_cards_list[card.suit].append(card) # remaining hands card: list of ['♠', '♥', '♦', '♣']
-            num_cards_list[side][card.suit] += 1 # suit number for each player, ex: [[0, 0, 0, 0], [4, 2, 4, 3], [5, 6, 1, 1], [2, 3, 4, 4]]
-    
+            # num_cards_list[side][card.suit] += 1 # suit number for each player, ex: [[0, 0, 0, 0], [4, 2, 4, 3], [5, 6, 1, 1], [2, 3, 4, 4]]
+    num_cards_list = Goren_bidding_infer_forward(state, unknown_sides)
     result = []
     result_score = []
     for i in range(n*10):
+        hands = copy.deepcopy(state.hands)
         assigned_cards = [[] for i in range(len(unknown_sides))] # add range
         for ii, cards in enumerate(unknown_cards_list): # per suit
             shuffled_cards = np.random.permutation(cards)
@@ -210,10 +183,43 @@ def bidding_inference_forward(state: State, n: int) -> List[List[Hand]]:
         result.append(hands)
     return np.array(result)[np.argsort(result_score)[:n]].tolist()
 
+
+def bidding_inference_forward(state: State, n: int) -> List[List[Hand]]:
+    '''
+    suit: ['♠', '♥', '♦', '♣']
+    use bid_similarity
+    '''
+    unknown_sides = get_unknown_sides(state)
+    unknown_cards = []
+    for side in unknown_sides:
+        unknown_cards += state.hands[side].remain_cards
+    num_cards = [
+        len(state.hands[side].remain_cards)
+        for side in unknown_sides]
+    result = []
+    result_score = []
+    for i in range(n*10):
+        shuffled_cards = np.random.permutation(unknown_cards)
+        hands = copy.deepcopy(state.hands)
+        offset = 0
+        for side, num in zip(unknown_sides, num_cards):
+            hands[side] = Hand(remain_cards=shuffled_cards[offset:offset+num].tolist())
+            offset += num
+        hands_original = remain_to_hand(copy.deepcopy(hands))
+        game = Goren_bidding(
+            hands=copy.deepcopy(hands_original),
+            declarer_starter=state.declarer_starter,
+            num_cards_in_hand=13)
+        bid_generated = game.run()
+        score = bid_similarity(state.bidding_info, bid_generated)
+        result_score.append(score)
+        result.append(hands)
+    return np.array(result)[np.argsort(result_score)[:n]].tolist()
+
 @dataclass
 class MCTSAgent(BaseAgent):
     n: int=10
-    generate_hands: Callable[[State, int], List[List[Hand]]]=bidding_inference_forward 
+    generate_hands: Callable[[State, int], List[List[Hand]]]=uniform_hands 
     # uniform_hands, bidding_inference_hands, suit_hands, suit_hands_backup, bidding_inference_forward
     reduction: Literal['mean', 'max', 'min']='mean'
     max_threads: int=0

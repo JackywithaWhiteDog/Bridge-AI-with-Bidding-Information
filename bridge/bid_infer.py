@@ -51,7 +51,6 @@ def Goren_bidding_infer(state, unknown_sides):
     hcp_suit, count_suit = calculate_remaining_HCP(unknown_cards_list)
     count_suit_remaining= np.array(count_suit)
     num_cards = [len(state.hands[i].remain_cards) for i in range(4)]
-    # assigned_cards = [[] for i in range(len(unknown_sides))]
     # get bidding information
     dic_info = [None for i in range(4)]
     for i, current_bid in enumerate(state.bidding_info):
@@ -66,7 +65,6 @@ def Goren_bidding_infer(state, unknown_sides):
         dic_info[who_bid] = [hcp_estimate, suit_estimate]
     # calculate player's rank
     rank_for_distribution, valid_rank = calculate_ranks(dic_info)
-    # st()
     # assign suit distribution according to the bidding info and player's rank
     assigned_suit_distribution = [[None] * 4 for i in range(4)]
     for i in rank_for_distribution:
@@ -90,13 +88,11 @@ def Goren_bidding_infer(state, unknown_sides):
             count_suit_remaining-=np.array(suit_gauss)
         assigned_suit_distribution[i] = suit_gauss
     unvalid = [i for i in unknown_sides if i not in valid_rank]
-    # st()
     for i in range(len(unvalid)-1):
         suit_gauss = fill_13(assigned_suit_distribution[unvalid[i]], num_cards[unvalid[i]])
         assigned_suit_distribution[unvalid[i]] =suit_gauss
         count_suit_remaining-=np.array(suit_gauss)
     assigned_suit_distribution[unvalid[-1]] = count_suit_remaining.tolist()
-    # st()
     assigned_suit_distribution = refine_suit_distribution(assigned_suit_distribution, state, unknown_sides)
     return assigned_suit_distribution, unknown_cards_list
 

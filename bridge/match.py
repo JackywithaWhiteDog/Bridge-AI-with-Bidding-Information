@@ -33,7 +33,8 @@ class Match:
     output_file: str=None
     agent_a: BaseAgent = field(init=False)
     agent_b: BaseAgent = field(init=False)
-    matches: List[Dict[str, Any]] = field(init=False)
+    # matches: List[Dict[str, Any]] = field(init=False)
+    matches: List[Dict[str, Any]] = field(init=False, default=None)
 
     def __post_init__(self, agent_a_kwargs, agent_b_kwargs):
         if self.num_cards_in_hand > 13 or self.num_cards_in_hand <= 0:
@@ -42,13 +43,14 @@ class Match:
         self.agent_a = get_agent(**agent_a_kwargs)
         self.agent_b = get_agent(**agent_b_kwargs)
 
-        with open(self.match_file, "r") as f:
-            self.matches = json.load(f)
-            print(f"Load match data from {self.match_file}.")
-            if self.num_games > len(self.matches):
-                self.num_games = len(self.matches)
-                print(f"The number of games (={self.num_games}) is larger than data in match file ({len(self.matches)}). Set the number of game to {len(self.matches)}")
-    
+        if self.match_file is not None:
+            with open(self.match_file, "r") as f:
+                self.matches = json.load(f)
+                print(f"Load match data from {self.match_file}.")
+                if self.num_games > len(self.matches):
+                    self.num_games = len(self.matches)
+                    print(f"The number of games (={self.num_games}) is larger than data in match file ({len(self.matches)}). Set the number of game to {len(self.matches)}")
+        
     def trump_and_declarer(self, bidding_info, declarer_starter):
         '''
         bidding suit: ['♣', '♦', '♥', '♠', 'NT', 'pass']
